@@ -40,15 +40,14 @@ class MyExcept(BaseException):
   pass
 
 def get_column_type(cursor, table_name):
-  column_type_map = {}
-  if cursor.execute("select table_id from __first_tablet_entry where table_name = '%s'" % table_name) != 1:
+  if (cursor.execute(
+      f"select table_id from __first_tablet_entry where table_name = '{table_name}'"
+  ) != 1):
     raise MyExcept
   table_id = cursor.fetchone()[0]
   if cursor.execute("select column_name, data_type from __all_all_column where table_id = %d" % table_id) <= 0:
     raise MyExcept
-  for item in cursor.fetchall():
-    column_type_map[item[0]] = item[1]
-  return column_type_map
+  return {item[0]: item[1] for item in cursor.fetchall()}
 
 
 def add_value(count, line_num, tokens, set_values, execute_values):
@@ -61,13 +60,13 @@ def add_value(count, line_num, tokens, set_values, execute_values):
     else:
       var_name = '@a%d' % count
       execute_values.append(var_name)
-      set_values.append("%s='%s'" % (var_name, tokens[id]))
+      set_values.append(f"{var_name}='{tokens[id]}'")
       count += 1
   return count
 
 def gen_replace_sql(**param):
-  values = "(%s)" % ','.join([ '?' for i in xrange(0,len(id_column_map)) ])
-  values = ",".join([ values for i in xrange(0, param["batch_count"]) ])
+  values = f"({','.join(['?' for _ in xrange(0, len(id_column_map))])})"
+  values = ",".join([values for _ in xrange(0, param["batch_count"])])
   column_def = ','.join([ i[1] for i in id_column_map ])
   param["values"] = values
   param["column_def"] = column_def

@@ -44,8 +44,8 @@ run_cmd('./fit_scan_cache.py -i scan.cache.prep -o scan.cache.fit -m scan.cache.
 
 for col_count in col_counts:
     for size_factor in size_factors:
-        run_cmd('./apply_scan_cache_model.py -i %s -o %s -m %s' % (prep_file_name + ".w%d.%d" % (size_factor, col_count),
-                                                                fit_file_name + ".w%d.%d" % (size_factor, col_count),
-                                                                'scan.cache.model'))
+        run_cmd(
+            f'./apply_scan_cache_model.py -i {prep_file_name + ".w%d.%d" % (size_factor, col_count)} -o {fit_file_name + ".w%d.%d" % (size_factor, col_count)} -m scan.cache.model'
+        )
 
 

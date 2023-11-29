@@ -30,12 +30,15 @@ def material_model_arr(arg_sets,
                        # Tstartup,
                        Trow_once,
                        Trow_col):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(material_model_form(single_arg_set,
-                              # Tstartup,
-                              Trow_once,
-                              Trow_col))
+    res = [
+        material_model_form(
+            single_arg_set,
+            # Tstartup,
+            Trow_once,
+            Trow_col,
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 material_model = Model(material_model_arr)
@@ -45,10 +48,7 @@ material_model.set_param_hint("Trow_col", min=0.0)
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

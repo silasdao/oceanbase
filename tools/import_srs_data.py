@@ -111,7 +111,7 @@ def main():
     srs_data_importer = SrsDataImporter()
     srs_data_importer.get_args()
     srs_data_importer.connect_server()
-    if False == srs_data_importer.upgrade_mode:
+    if srs_data_importer.upgrade_mode == False:
         srs_data_importer.generate_sql()
         srs_data_importer.prepare_execute()
         srs_data_importer.execute_sql()

@@ -14,9 +14,8 @@ def remove_schema():
 
 def write_schema(s):
     global schema_file
-    of = open(schema_file, 'w')
-    of.write(s)
-    of.close()
+    with open(schema_file, 'w') as of:
+        of.write(s)
 
 
 def make_seq(t, cnt):

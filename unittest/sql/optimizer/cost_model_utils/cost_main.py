@@ -39,4 +39,4 @@ class Tester(object):
 
 if __name__ == '__main__':
     MyLogger.info("start to do cost model unittest")
-    sp.check_call('python %s' % ('material.py'), shell=True)
+    sp.check_call('python material.py', shell=True)

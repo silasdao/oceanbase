@@ -31,14 +31,14 @@ prep_cmd[4] = prep_file_name
 run_cmd(' '.join(prep_cmd))
 prep_cmd.extend('-f 1,e,'.split())
 for col_count in col_counts:
-    prep_cmd[4] = prep_file_name + "." + str(col_count)
+    prep_cmd[4] = f"{prep_file_name}.{str(col_count)}"
     run_cmd(' '.join(prep_cmd) + str(col_count))
 
 run_cmd('./fit_io.py -i scan.io.prep -o io.fit -m io.model')
 
 for col_count in col_counts:
-    run_cmd('./apply_io_model.py -i %s -o %s -m %s' % (prep_file_name + '.' + str(col_count),
-                                                       fit_file_name + '.' + str(col_count),
-                                                       'io.model'))
+    run_cmd(
+        f'./apply_io_model.py -i {prep_file_name}.{str(col_count)} -o {fit_file_name}.{str(col_count)} -m io.model'
+    )
 
 

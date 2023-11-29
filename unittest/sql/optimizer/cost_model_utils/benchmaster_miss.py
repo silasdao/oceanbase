@@ -28,9 +28,8 @@ def remove_schema():
 
 def write_schema(s):
     global schema_file
-    of = open(schema_file, 'w')
-    of.write(s)
-    of.close()
+    with open(schema_file, 'w') as of:
+        of.write(s)
 
 
 def make_seq(t, cnt):
@@ -42,14 +41,12 @@ def make_seq(t, cnt):
 def make_schema(types):
     global schema_file
     remove_schema()
-    col_id = 1
     s = "create table t1 ("
-    for t in types:
+    for col_id, t in enumerate(types, start=1):
         s += "c%d %s, " % (col_id, t)
-        col_id += 1
     s = s[:-2]
     s += ', primary key (c1))'
-    run_cmd('echo "# %s" >> ' % s + outfile)
+    run_cmd(f'echo "# {s}" >> {outfile}')
     write_schema(s)
 
 

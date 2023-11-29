@@ -8,24 +8,22 @@ def clear_action_codes(action_filename_list, action_begin_line, \
   char_enter = '\n'
   for action_filename in action_filename_list:
     new_action_file_lines = []
-    action_file = open(action_filename, 'r')
-    action_file_lines = action_file.readlines()
-    is_action_codes = False
-    for action_file_line in action_file_lines:
-      if is_action_codes and action_file_line == (action_end_line + char_enter):
-        is_action_codes = False
-      if not is_action_codes:
-        new_action_file_lines.append(action_file_line)
-      if not is_action_codes and action_file_line == (action_begin_line + char_enter):
-        is_action_codes = True
-    action_file.close()
-    new_action_file = open(action_filename, 'w')
-    for new_action_file_line in new_action_file_lines:
-      if is_special_upgrade_code:
-        if new_action_file_line == (action_end_line + char_enter):
-          new_action_file.write('  return\n')
-      new_action_file.write(new_action_file_line)
-    new_action_file.close()
+    with open(action_filename, 'r') as action_file:
+      action_file_lines = action_file.readlines()
+      is_action_codes = False
+      for action_file_line in action_file_lines:
+        if is_action_codes and action_file_line == (action_end_line + char_enter):
+          is_action_codes = False
+        if not is_action_codes:
+          new_action_file_lines.append(action_file_line)
+          if action_file_line == (action_begin_line + char_enter):
+            is_action_codes = True
+    with open(action_filename, 'w') as new_action_file:
+      for new_action_file_line in new_action_file_lines:
+        if is_special_upgrade_code:
+          if new_action_file_line == (action_end_line + char_enter):
+            new_action_file.write('  return\n')
+        new_action_file.write(new_action_file_line)
 
 def regenerate_upgrade_script():
   print('\n=========run gen_upgrade_scripts.py, begin=========\n')

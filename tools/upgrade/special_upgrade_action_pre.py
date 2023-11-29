@@ -49,8 +49,7 @@ def do_special_upgrade(conn, cur, timeout, user, passwd):
 def query(cur, sql):
   log(sql)
   cur.execute(sql)
-  results = cur.fetchall()
-  return results
+  return cur.fetchall()
 
 def log(msg):
   logging.info(msg)

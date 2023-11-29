@@ -17,8 +17,7 @@ def array_model_form(args,
 
     ELEM_PER_PAGE = 1024
     extend_cnt = math.ceil(math.log(float(Nelem)/ELEM_PER_PAGE, 2))
-    if extend_cnt < 0:
-        extend_cnt = 0
+    extend_cnt = max(extend_cnt, 0)
     copy_cnt = ELEM_PER_PAGE * (math.pow(2, extend_cnt) - 1)
 
     total_cost = Telem_ence * Nelem
@@ -30,10 +29,7 @@ def array_model_form(args,
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 file_name = "get_total.data.prep"

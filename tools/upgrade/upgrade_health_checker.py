@@ -103,7 +103,7 @@ class Option:
     self.__is_with_param = is_with_param
     self.__is_local_opt = is_local_opt
     self.__has_value = False
-    if None != default_value:
+    if default_value != None:
       self.set_value(default_value)
   def is_with_param(self):
     return self.__is_with_param
@@ -121,7 +121,8 @@ class Option:
   def is_local_opt(self):
     return self.__is_local_opt
   def is_valid(self):
-    return None != self.__short_name and None != self.__long_name and True == self.__has_value and None != self.__value
+    return (self.__short_name != None and self.__long_name != None
+            and self.__has_value == True and self.__value != None)
 
 g_opts =\
 [\
@@ -165,7 +166,7 @@ def check_db_client_opts():
 def parse_option(opt_name, opt_val):
   global g_opts
   for opt in g_opts:
-    if opt_name in (('-' + opt.get_short_name()), ('--' + opt.get_long_name())):
+    if opt_name in (f'-{opt.get_short_name()}', f'--{opt.get_long_name()}'):
       opt.set_value(opt_val)
 
 def parse_options(argv):
@@ -174,12 +175,12 @@ def parse_options(argv):
   long_opt_list = []
   for opt in g_opts:
     if opt.is_with_param():
-      short_opt_str += opt.get_short_name() + ':'
+      short_opt_str += f'{opt.get_short_name()}:'
     else:
       short_opt_str += opt.get_short_name()
   for opt in g_opts:
     if opt.is_with_param():
-      long_opt_list.append(opt.get_long_name() + '=')
+      long_opt_list.append(f'{opt.get_long_name()}=')
     else:
       long_opt_list.append(opt.get_long_name())
   (opts, args) = getopt.getopt(argv, short_opt_str, long_opt_list)
@@ -200,59 +201,58 @@ def deal_with_local_opts():
   global g_opts
   if has_no_local_opts():
     raise MyError('no local options, can not deal with local options')
-  else:
-    for opt in g_opts:
-      if opt.is_local_opt() and opt.has_value():
-        deal_with_local_opt(opt)
-        # 只处理一个
-        return
+  for opt in g_opts:
+    if opt.is_local_opt() and opt.has_value():
+      deal_with_local_opt(opt)
+      # 只处理一个
+      return
 
 def get_opt_host():
   global g_opts
   for opt in g_opts:
-    if 'host' == opt.get_long_name():
+    if opt.get_long_name() == 'host':
       return opt.get_value()
 
 def get_opt_port():
   global g_opts
   for opt in g_opts:
-    if 'port' == opt.get_long_name():
+    if opt.get_long_name() == 'port':
       return opt.get_value()
 
 def get_opt_user():
   global g_opts
   for opt in g_opts:
-    if 'user' == opt.get_long_name():
+    if opt.get_long_name() == 'user':
       return opt.get_value()
 
 def get_opt_password():
   global g_opts
   for opt in g_opts:
-    if 'password' == opt.get_long_name():
+    if opt.get_long_name() == 'password':
       return opt.get_value()
 
 def get_opt_module():
   global g_opts
   for opt in g_opts:
-    if 'module' == opt.get_long_name():
+    if opt.get_long_name() == 'module':
       return opt.get_value()
 
 def get_opt_log_file():
   global g_opts
   for opt in g_opts:
-    if 'log-file' == opt.get_long_name():
+    if opt.get_long_name() == 'log-file':
       return opt.get_value()
 
 def get_opt_timeout():
   global g_opts
   for opt in g_opts:
-    if 'timeout' == opt.get_long_name():
+    if opt.get_long_name() == 'timeout':
       return opt.get_value()
 
 def get_opt_zone():
   global g_opts
   for opt in g_opts:
-    if 'zone' == opt.get_long_name():
+    if opt.get_long_name() == 'zone':
       return opt.get_value()
 #### ---------------end----------------------
 
@@ -324,12 +324,8 @@ def check_schema_status(query_cur, timeout):
 
 # 4. check major finish
 def check_major_merge(query_cur, timeout):
-  need_check = 0
   (desc, results) = query_cur.exec_query("""select distinct value from  GV$OB_PARAMETERs where name = 'enable_major_freeze';""")
-  if len(results) != 1:
-    need_check = 1
-  elif results[0][0] != 'True':
-    need_check = 1
+  need_check = 1 if len(results) != 1 or results[0][0] != 'True' else 0
   if need_check == 1:
     sql = """select count(1) from CDB_OB_MAJOR_COMPACTION where (GLOBAL_BROADCAST_SCN > LAST_SCN or STATUS != 'IDLE')"""
     check_until_timeout(query_cur, sql, 0, timeout)

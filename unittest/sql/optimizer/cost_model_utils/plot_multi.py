@@ -12,10 +12,7 @@ import math
 
 def extract_int_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(int(float(item)))
-    return line_info
+    return [int(float(item)) for item in splited]
 
 def case_cmp(a,b,c):
     if c > 1251:
@@ -33,9 +30,7 @@ cmp_n = [lambda x, y, z = count: case_cmp(x, y, z) for count in range(10)]
 colors = ["red", "green", "blue", "yellow", "purple", "black", "pink", "cyan", "brown", "gray"]
 
 def do_plot(arg, horizen, need_columns_id,label):
-    arrs = []
-    for i in arg[0]:
-        arrs.append([])
+    arrs = [[] for _ in arg[0]]
     for case in arg:
         for i in xrange(len(case)):
             arrs[i].append(case[i])

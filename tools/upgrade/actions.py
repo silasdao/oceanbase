@@ -42,7 +42,7 @@ def get_succ_sql_list_str():
   for i in range(0, len(g_succ_sql_list)):
     if i > 0:
       ret_str += '\n'
-    ret_str += g_succ_sql_list[i].action_sql + ';'
+    ret_str += f'{g_succ_sql_list[i].action_sql};'
   return ret_str
 
 def get_commit_sql_list_str():
@@ -51,7 +51,7 @@ def get_commit_sql_list_str():
   for i in range(0, len(g_commit_sql_list)):
     if i > 0:
       ret_str += '\n'
-    ret_str += g_commit_sql_list[i].action_sql + ';'
+    ret_str += f'{g_commit_sql_list[i].action_sql};'
   return ret_str
 
 def get_rollback_sql_file_lines_str():
@@ -63,27 +63,28 @@ def get_rollback_sql_file_lines_str():
       ret_str += '\n'
     idx = g_commit_sql_list_len - 1 - i
     ret_str += '/*\n' + g_commit_sql_list[idx].action_sql + ';\n*/\n'
-    ret_str += g_commit_sql_list[idx].rollback_sql + ';'
+    ret_str += f'{g_commit_sql_list[idx].rollback_sql};'
   return ret_str
 
 def dump_rollback_sql_to_file(rollback_sql_filename):
   logging.info('===================== begin to dump rollback sql file ============================')
-  rollback_sql_file = open(rollback_sql_filename, 'w')
-  rollback_sql_file.write('# 此文件是回滚用的sql。\n')
-  rollback_sql_file.write('# 注释的sql是已经成功commit的sql，它的下一条没被注释的sql则是对应的回滚sql。回滚的sql的排序跟commit的sql的排序刚好相反。\n')
-  rollback_sql_file.write('# 跑升级脚本失败的时候可以参考本文件来进行回滚。\n')
-  rollback_sql_file.write('\n')
-  rollback_sql_file_lines_str = get_rollback_sql_file_lines_str()
-  rollback_sql_file.write(rollback_sql_file_lines_str)
-  rollback_sql_file.close()
-  logging.info('=========== succeed to dump rollback sql file to: ' + rollback_sql_filename + '===============')
+  with open(rollback_sql_filename, 'w') as rollback_sql_file:
+    rollback_sql_file.write('# 此文件是回滚用的sql。\n')
+    rollback_sql_file.write('# 注释的sql是已经成功commit的sql，它的下一条没被注释的sql则是对应的回滚sql。回滚的sql的排序跟commit的sql的排序刚好相反。\n')
+    rollback_sql_file.write('# 跑升级脚本失败的时候可以参考本文件来进行回滚。\n')
+    rollback_sql_file.write('\n')
+    rollback_sql_file_lines_str = get_rollback_sql_file_lines_str()
+    rollback_sql_file.write(rollback_sql_file_lines_str)
+  logging.info(
+      f'=========== succeed to dump rollback sql file to: {rollback_sql_filename}==============='
+  )
 
 def check_is_ddl_sql(sql):
   word_list = sql.split()
   if len(word_list) < 1:
     raise MyError('sql is empty, sql="{0}"'.format(sql))
   key_word = word_list[0].lower()
-  if 'create' != key_word and 'alter' != key_word:
+  if key_word not in ['create', 'alter']:
     raise MyError('sql must be ddl, key_word="{0}", sql="{1}"'.format(key_word, sql))
 
 def check_is_query_sql(sql):
@@ -91,7 +92,7 @@ def check_is_query_sql(sql):
   if len(word_list) < 1:
     raise MyError('sql is empty, sql="{0}"'.format(sql))
   key_word = word_list[0].lower()
-  if 'select' != key_word and 'show' != key_word and 'desc' != key_word:
+  if key_word not in ['select', 'show', 'desc']:
     raise MyError('sql must be query, key_word="{0}", sql="{1}"'.format(key_word, sql))
 
 def check_is_update_sql(sql):
@@ -99,10 +100,11 @@ def check_is_update_sql(sql):
   if len(word_list) < 1:
     raise MyError('sql is empty, sql="{0}"'.format(sql))
   key_word = word_list[0].lower()
-  if 'insert' != key_word and 'update' != key_word and 'replace' != key_word and 'set' != key_word and 'delete' != key_word:
+  if key_word not in ['insert', 'update', 'replace', 'set', 'delete']:
     # 还有类似这种：select @current_ts := now()
-    if not (len(word_list) >= 3 and 'select' == word_list[0].lower()\
-        and word_list[1].lower().startswith('@') and ':=' == word_list[2].lower()):
+    if not (len(word_list) >= 3 and word_list[0].lower() == 'select'
+            and word_list[1].lower().startswith('@')
+            and word_list[2].lower() == ':='):
       raise MyError('sql must be update, key_word="{0}", sql="{1}"'.format(key_word, sql))
 
 def get_min_cluster_version(cur):
@@ -142,8 +144,7 @@ def set_tenant_parameter(cur, parameter, value, timeout = 0):
 def get_ori_enable_ddl(cur, timeout):
   ori_value_str = fetch_ori_enable_ddl(cur)
   wait_parameter_sync(cur, False, 'enable_ddl', ori_value_str, timeout)
-  ori_value = (ori_value_str == 'True')
-  return ori_value
+  return (ori_value_str == 'True')
 
 def fetch_ori_enable_ddl(cur):
   ori_value = 'True'
@@ -194,8 +195,7 @@ def get_version(version_str):
     logging.exception("""version:{0} is invalid""".format(version_str))
     raise e
 
-  version = (major << 32) | (minor << 16) | (major_patch << 8) | (minor_patch)
-  return version
+  return (major << 32) | (minor << 16) | (major_patch << 8) | (minor_patch)
 
 def check_server_version_by_cluster(cur):
   sql = """select distinct(substring_index(build_version, '_', 1)) from __all_server""";
@@ -215,11 +215,7 @@ def check_parameter(cur, is_tenant_config, key, value):
   cur.execute(sql)
   result = cur.fetchall()
   bret = False
-  if len(result) > 0:
-    bret = True
-  else:
-    bret = False
-  return bret
+  return len(result) > 0
 
 def wait_parameter_sync(cur, is_tenant_config, key, value, timeout):
   table_name = "GV$OB_PARAMETERS" if not is_tenant_config else "__all_virtual_tenant_parameter_info"
@@ -475,7 +471,7 @@ class BaseEachTenantDDLAction():
 
 def actions_cls_compare(x, y):
   diff = x.get_seq_num() - y.get_seq_num()
-  if 0 == diff:
+  if diff == 0:
     raise MyError('seq num is equal')
   elif diff < 0:
     return -1
@@ -485,10 +481,9 @@ def actions_cls_compare(x, y):
 def reflect_action_cls_list(action_module, action_name_prefix):
   action_cls_list = []
   cls_from_actions = dir(action_module)
-  for cls in cls_from_actions:
-    if cls.startswith(action_name_prefix):
-      action_cls = getattr(action_module, cls)
-      action_cls_list.append(action_cls)
+  action_cls_list.extend(
+      getattr(action_module, cls) for cls in cls_from_actions
+      if cls.startswith(action_name_prefix))
   action_cls_list.sort(actions_cls_compare)
   return action_cls_list
 

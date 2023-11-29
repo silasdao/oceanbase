@@ -229,9 +229,9 @@ class ColumnFactory(object):
         if type(obname) == str:
             pass
         elif type(obname) == list:
-            obname = [name for name in obname]
+            obname = list(obname)
         else:
-            raise Exception("unsupport type %s" % type(obname))
+            raise Exception(f"unsupport type {type(obname)}")
         DEBUG(self.count, "name,sname,obname", ",".join([str(name), str(sname), str(obname)]))
         return self.count0(name, sname, obname, enable)
 
@@ -243,19 +243,22 @@ class ColumnFactory(object):
         def calc_func(stat,ip=ip):
             def try_get(d, k, b):
                 try:
-                    if d.has_key(k):
-                        return d[k]
-                    else:
-                        return d[b]
+                    return d[k] if d.has_key(k) else d[b]
                 except Exception as e:
                     raise e
+
             try:
                 if type(obname) == str:
                     return try_get(stat, svr, oceanbase.get_current_tenant())[ip][obname]
                 elif type(obname) == list:
-                    return sum([try_get(stat, svr, oceanbase.get_current_tenant())[ip][name] for name in obname])
+                    return sum(
+                        try_get(stat, svr, oceanbase.get_current_tenant())[ip][
+                            name
+                        ]
+                        for name in obname
+                    )
                 else:
-                    raise Exception("unsupport type %s" % type(obname))
+                    raise Exception(f"unsupport type {type(obname)}")
             except KeyError as e:
 #               DEBUG(calc_func, "exception", e)
                 pass
@@ -272,15 +275,18 @@ class ColumnFactory(object):
         ip = self.__ip
         def calc_func(stat,ip=ip):
             def try_get(d, k, b):
-                if d.has_key(k):
-                    return d[k]
-                else:
-                    return d[b]
+                return d[k] if d.has_key(k) else d[b]
+
             try:
                 if type(obnamec) == str:
                     total_count = try_get(stat, svr, oceanbase.get_current_tenant())[ip][obnamec]
                 elif type(obnamec) == list:
-                    total_count = sum([try_get(stat, svr, oceanbase.get_current_tenant())[ip][name] for name in obnamec])
+                    total_count = sum(
+                        try_get(stat, svr, oceanbase.get_current_tenant())[ip][
+                            name
+                        ]
+                        for name in obnamec
+                    )
                 DEBUG(calc_func, "name", obnamet)
                 DEBUG(calc_func, "ip", ip)
                 DEBUG(calc_func, "svr", svr)
@@ -293,14 +299,26 @@ class ColumnFactory(object):
             except Exception as e:
 #               DEBUG(calc_func, "exception", e)
                 pass
+
         return Column(name, calc_func, 7, enable=enable, sname=sname)
 
     def cache(self, name, sname, obname):
         svr = self.__svr
         ip = self.__ip
-        return Column(name, lambda stat,ip=ip: stat[svr][ip][obname+"_cache_hit"]
-                      / float(stat[svr][ip][obname+"_cache_hit"] + stat[svr][ip][obname+"_cache_miss"] or 1),
-                      7, enable=False, sname=sname)
+        return Column(
+            name,
+            lambda stat, ip=ip: (
+                stat[svr][ip][f"{obname}_cache_hit"]
+                / float(
+                    stat[svr][ip][f"{obname}_cache_hit"]
+                    + stat[svr][ip][f"{obname}_cache_miss"]
+                    or 1
+                )
+            ),
+            7,
+            enable=False,
+            sname=sname,
+        )
 
 def mem_str(mem_int, bit=False):
     mem_int = int(mem_int)
@@ -314,15 +332,13 @@ def mem_str(mem_int, bit=False):
     if mem_int < 1024:
         return "%.2fM" % mem_int + (bit and 'b' or '')
     mem_int /= 1024
-    if mem_int < 1024:
-        return "%.2fG" % mem_int + (bit and 'b' or '')
-    return "UNKNOW"
+    return "%.2fG" % mem_int + (bit and 'b' or '') if mem_int < 1024 else "UNKNOW"
 
 def count_str(count_int, kilo=True):
     return str(count_int)
 
 def percent_str(percent_int):
-    return str(round(float(percent_int) * 100, 1)) + "%"
+    return f"{str(round(float(percent_int) * 100, 1))}%"
 
 class Cowsay(object):
     '''Copyright 2011 Jesse Chan-Norris <jcn@pith.org>
@@ -343,16 +359,12 @@ class Cowsay(object):
                 """
 
     def build_bubble(self, str, length=40):
-        bubble = []
         lines = self.normalize_text(str, length)
         bordersize = len(lines[0])
-        bubble.append("  " + "_" * bordersize)
-
+        bubble = ["  " + "_" * bordersize]
         for index, line in enumerate(lines):
             border = self.get_border(lines, index)
-            bubble.append("%s %s %s" % (border[0], line, border[1]))
-            bubble.append("  " + "-" * bordersize)
-
+            bubble.extend((f"{border[0]} {line} {border[1]}", "  " + "-" * bordersize))
         return "\n".join(bubble)
 
     def normalize_text(self, str, length):
@@ -554,8 +566,7 @@ class OceanBase(object):
         if database is None:
             database = Options.database
         username = Options.user or self.app_info['username'] or Global.DEFAULT_USER
-        password = Options.password
-        if password:
+        if password := Options.password:
             mysql = "mysql --connect_timeout=5 -s -N -h%s -P%d -u%s -p%s %s" % (host, port, username, password, database)
         else:
             mysql = "mysql --connect_timeout=5 -s -N -h%s -P%d -u%s %s" % (host, port, username, database)
@@ -563,8 +574,7 @@ class OceanBase(object):
         DEBUG(self.dosql, "", cmd)
         p = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
         output = p.communicate()[0]
-        err = p.wait()
-        if err:
+        if err := p.wait():
             raise Exception('popen Fail', cmd)
         return output
 
@@ -580,8 +590,7 @@ class OceanBase(object):
         if database is None:
             database = Options.database
         username = Options.user or self.app_info['username'] or Global.DEFAULT_USER
-        password = Options.password
-        if password:
+        if password := Options.password:
             mysql = "mysql --table --connect_timeout=5 --pager=less --column-names -h%s -P%d -u%s -p%s %s" % (host, port, username, password, database)
         else:
             mysql = "mysql --table --connect_timeout=5 --pager=less --column-names -h%s -P%d -u%s %s" % (host, port, username, database)
@@ -603,8 +612,7 @@ class OceanBase(object):
         if database is None:
             database = Options.database
         username = Options.user or self.app_info['username'] or Global.DEFAULT_USER
-        password = Options.password
-        if password:
+        if password := Options.password:
             cmd = "mysql --connect_timeout=5 -h%s -P%d -u%s -p%s" % (host, port, username, password)
         else:
             cmd = "mysql --connect_timeout=5 -h%s -P%d -u%s" % (host, port, username)
@@ -618,7 +626,7 @@ class OceanBase(object):
         call('clear')
 
     def ssh(self, host):
-        cmd = "ssh -o StrictHostKeyChecking=no %s" % host
+        cmd = f"ssh -o StrictHostKeyChecking=no {host}"
         call('clear')
         try:
             call(cmd, shell=True)
@@ -658,9 +666,7 @@ class OceanBase(object):
         sql = self.__check_schema() % (str(self.get_current_tenant()))
         res = self.dosql(sql)
         r = dict()
-        time = ''
-        if not self.__using_server_time():
-            time = str(datetime.now())
+        time = str(datetime.now()) if not self.__using_server_time() else ''
         for one in res.split("\n")[:-1]:
             a = one.split("\t")
             if self.__using_server_time():
@@ -671,7 +677,7 @@ class OceanBase(object):
             port = a[3]
             name = a[4]
             value = int(a[5])
-            ipport = ip + ":" + port
+            ipport = f"{ip}:{port}"
             a = [time, tnt, ip, port, name, value]
             DEBUG(self.__get_all_stat, "stuffs", a)
             if tnt not in r:
@@ -684,8 +690,7 @@ class OceanBase(object):
         return r
 
     def sub_stat(self, now, prev):
-        r = self.__sub_stat(now, prev)
-        return r
+        return self.__sub_stat(now, prev)
 
     def __sub_stat(self, now, prev):
         r = {}
@@ -693,16 +698,13 @@ class OceanBase(object):
             if k in self.instant_key_list:
                 r[k] = now[k]
             elif type(now[k]) == dict:
-                r.update({k: self.__sub_stat(now[k], prev[k])})
+                r[k] = self.__sub_stat(now[k], prev[k])
             elif type(now[k]) == int:
                 r[k] = now[k] - prev[k]
             elif type(now[k]) == float:
                 r[k] = now[k] - prev[k]
             elif type(now[k]) == type(datetime.min):
                 r[k] = now[k] - prev[k]
-            else:
-                #print type(now[k])
-                pass
         return r
 
     def __update_oceanbase_stat_runner(self):
@@ -734,9 +736,8 @@ class OceanBase(object):
                      '-o', 'StrictHostKeyChecking=no', host, cmd],
                     stdout=PIPE, stderr=PIPE, preexec_fn=setsid, shell=False)
         output = ssh.communicate()[0]
-        err = ssh.wait()
-        if err:
-            raise Exception('popen Fail', "%s: %s" % (host, cmd))
+        if err := ssh.wait():
+            raise Exception('popen Fail', f"{host}: {cmd}")
         return output
 
     def __get_machine_stat(self, ip):
@@ -751,8 +752,7 @@ class OceanBase(object):
 
         lines = output.split('\n')
 
-        res = {}
-        res['time'] = float(lines[0]) / 1000   # ms
+        res = {'time': float(lines[0]) / 1000}
         lines = lines[1:]
 
         cpuinfo = lines[0]
@@ -778,7 +778,7 @@ class OceanBase(object):
 
         # mem
         for line in lines:
-            if 'END_MEM' == line:
+            if line == 'END_MEM':
                 break
             kv = line.split()
             k = kv[0][:-1]
@@ -790,7 +790,7 @@ class OceanBase(object):
         # net
         res['net'] = {}
         for line in lines:
-            if 'END_NET' == line:
+            if line == 'END_NET':
                 break
             colon = line.find(':')
             assert colon > 0, line
@@ -812,7 +812,7 @@ class OceanBase(object):
         SECTOR_SIZE = 512
         for line in lines:
             # http://www.mjmwired.net/kernel/Documentation/iostats.txt
-            if 'END_DISK' == line:
+            if line == 'END_DISK':
                 break
             _, _, name, reads, _, rbytes, rtime, writes, _, wbytes, wtime = line.split()[:11]
             res['disk'][name] = {}
@@ -823,13 +823,9 @@ class OceanBase(object):
             res['disk'][name]['rtime'] = int(rtime)
             res['disk'][name]['wtime'] = int(wtime)
         return res
-        idx = lines.index('END_DISK')
-        lines = lines[idx + 1:]
 
     def __update_server_stat_runner(self):
-        prev = {}
-        for ip in self.ip_list:
-            prev[ip] = self.__get_machine_stat(ip)
+        prev = {ip: self.__get_machine_stat(ip) for ip in self.ip_list}
         while not self.__stop:
             sleep(Options.machine_interval)
             shuffle(self.ip_list)
@@ -899,7 +895,7 @@ class OceanBase(object):
         res = self.dosql("select tenant_id, tenant_name, zone_list from __all_tenant")
         self.tenant = []
         flg = True
-        for line in res.split("\n")[0:-1]:
+        for line in res.split("\n")[:-1]:
             tnt = line.split("\t")
             self.tenant.append(Tenant(tnt[0], tnt[1], tnt[2], flg))
             flg = False
@@ -921,8 +917,9 @@ class OceanBase(object):
         if Options.dataid is not None:
             lms_list = self.app_info['lms_list']
             if not lms_list or len(lms_list) <= 0:
-                say('Get lms list fail, plz check'
-                    + ' [ dataid = %s, lms_list = %s ]' % (Options.dataid, lms_list))
+                say(
+                    f'Get lms list fail, plz check [ dataid = {Options.dataid}, lms_list = {lms_list} ]'
+                )
             else:
                 for lms in lms_list:
                     say('checking lms [%s:%s]' % lms)
@@ -1034,8 +1031,12 @@ class OceanBase(object):
 
     def get_tenant_svr(self, tid=None):
         for tnt in self.tenant:
-            DEBUG(self.get_tenant_svr, "cur_tenant_id.selected", str(tnt.tenant_id) + "|" + str(tnt.selected))
-            if True == tnt.selected:
+            DEBUG(
+                self.get_tenant_svr,
+                "cur_tenant_id.selected",
+                f"{str(tnt.tenant_id)}|{str(tnt.selected)}",
+            )
+            if tnt.selected == True:
                 return tnt.svr_list
 
     def find_svr_list(self):
@@ -1082,7 +1083,7 @@ class Page(object):
         self.__shown_widget_num = 0
 
     def add_widget(self, widget):
-        if 0 == len(self.__widgets):
+        if len(self.__widgets) == 0:
             widget.select(True)
         self.__widgets.append(widget)
         self.__rearrange()
@@ -1091,7 +1092,7 @@ class Page(object):
         pass
 
     def __rearrange(self):
-        undeleted_widgets = filter(lambda w: False == w.delete(), self.__widgets)
+        undeleted_widgets = filter(lambda w: w.delete() == False, self.__widgets)
         self.__layout.rearrange(0, 0, self.__height, self.__width, undeleted_widgets)
 
     def rearrange(self):
@@ -1185,11 +1186,11 @@ class Page(object):
         1. deleted widgets and,
         2. couldn\'t display widgets as no space for them.
         '''
-        return filter(lambda w: w.show() and False == w.delete(), self.__widgets)
+        return filter(lambda w: w.show() and w.delete() == False, self.__widgets)
 
     def valid_widgets(self):
         '''All widgets excpet for the deleted widgets.'''
-        return filter(lambda w: False == w.delete(), self.__widgets)
+        return filter(lambda w: w.delete() == False, self.__widgets)
 
     def all_widgets(self):
         return self.__widgets
@@ -1203,16 +1204,17 @@ class Page(object):
         return None
 
     def select_columns(self):
-        if len(self.all_widgets()) > 0:
-            all_widgets = [hc_widget.column_widget() for hc_widget in self.all_widgets()]
-            columns = all_widgets[0].valid_columns()
-            columns_ret = ColumnCheckBox('Select Columns', columns, self.__parent).run()
-            for widget in all_widgets:
-                for idx in range(0, len(columns)):
-                    widget.valid_columns()[idx].enable(columns[idx].enable(enable=True))
-                widget.update()
-            [hc_widget.resize() for hc_widget in self.all_widgets()]
-            self.rearrange()
+        if len(self.all_widgets()) <= 0:
+            return
+        all_widgets = [hc_widget.column_widget() for hc_widget in self.all_widgets()]
+        columns = all_widgets[0].valid_columns()
+        columns_ret = ColumnCheckBox('Select Columns', columns, self.__parent).run()
+        for widget in all_widgets:
+            for idx in range(0, len(columns)):
+                widget.valid_columns()[idx].enable(columns[idx].enable(enable=True))
+            widget.update()
+        [hc_widget.resize() for hc_widget in self.all_widgets()]
+        self.rearrange()
 
 
 class Layout(object):
@@ -1228,7 +1230,7 @@ class Layout(object):
                 pass
 
     def __calc_widget_height(self, height, width, widgets):
-        max_min_height = max([ widget.min_height() for widget in widgets ])
+        max_min_height = max(widget.min_height() for widget in widgets)
         for widget in widgets:
             widget.min_height(max_min_height)
 
@@ -1270,10 +1272,7 @@ class Layout(object):
 
 class Widget(object):
     def __init__(self, min_height, min_width, parent, use_win=False):
-        if use_win:
-            self.__win = parent
-        else:
-            self.__win = parent.derwin(min_height, min_width, 0, 0)
+        self.__win = parent if use_win else parent.derwin(min_height, min_width, 0, 0)
         self.__min_height = min_height
         self.__min_width = min_width
         self.__height, self.__width = self.__win.getmaxyx()
@@ -1366,7 +1365,7 @@ class Column(object):
         DEBUG(self.__init__, "self.__name, self.__sname", ",".join([self.__name, self.__sname]))
 
     def __str__(self):
-        return self.name() + " (" + self.sname() + ")"
+        return f"{self.name()} ({self.sname()})"
 
     def __repr__(self):
         return self.name()
@@ -1399,7 +1398,7 @@ class Column(object):
         elif type(d) == type(0):
             div = (seconds(stat['time']) or 1.0) if self.__duration else 1.0
             v = int(d / div)
-            if (self.__sname == 'ni' or self.__sname == 'no'):
+            if self.__sname in ['ni', 'no']:
                 return mem_str(v).center(self.__width)[:self.__width]
             return str(v).center(self.__width)[:self.__width]
         elif type(d) == type(''):
@@ -1436,7 +1435,7 @@ class MachineStatWidget(Widget):
                 self.win().attroff(curses.color_pair(1) | curses.A_BOLD)
             else:
                 self.win().box()
-            self.win().addstr(0, 2, " " + self.__name + " ", curses.color_pair(3))
+            self.win().addstr(0, 2, f" {self.__name} ", curses.color_pair(3))
 
         try:
             stat = oceanbase.machine_stat()[self.host()]
@@ -1527,8 +1526,10 @@ class ColumnWidget(Widget):
     def redraw(self):
         def stat_count():
             return oceanbase.stat_count()
+
         def latest(num):
             return oceanbase.latest(num)
+
         enabled_columns = filter(lambda c: c.enable(), self.valid_columns())
         if self.__border:
             if self.select():
@@ -1538,7 +1539,7 @@ class ColumnWidget(Widget):
             else:
                 self.win().box()
             if self.__name:
-                self.win().addstr(0, 2, " " + self.__name + " ", curses.color_pair(3))
+                self.win().addstr(0, 2, f" {self.__name} ", curses.color_pair(3))
             print_lines = min(stat_count(), self.height() - 3)
             self.win().addstr(1, 1, " " + " ".join([ c.header() for c in enabled_columns ]) + " ", curses.color_pair(2))
             border_offset = 1
@@ -1586,7 +1587,7 @@ class HeaderColumnWidget(Widget):
                     self.win().addstr(nline, 1, string.center(self.min_width() - 2))
                     string = ""
                     nline += 1
-                string += "  " + item_str
+                string += f"  {item_str}"
             if string:
                 string = string[2:]
                 self.win().addstr(nline, 1, string.center(self.min_width() - 2))
@@ -1595,7 +1596,7 @@ class HeaderColumnWidget(Widget):
                 self.__set_padding(0)
         self.__column_widget.redraw()
         if self.__name:
-            self.win().addstr(0, 2, " " + self.__name + " ", curses.color_pair(3))
+            self.win().addstr(0, 2, f" {self.__name} ", curses.color_pair(3))
         time = strftime(" %Y-%m-%d %T ")
         self.win().addstr(0, self.width() - len(time) - 2, time, curses.color_pair(3))
 
@@ -1670,14 +1671,10 @@ class StatusWidget(Widget):
         tid = str(oceanbase.get_current_tenant())
         if oceanbase.stat_count() > 1:
             last = oceanbase.now()
-            insert = sum([item["sql insert count"]
-                            for item in last[tid].values()])
-            replace = sum([item["sql replace count"]
-                            for item in last[tid].values()])
-            delete = sum([item["sql delete count"]
-                            for item in last[tid].values()])
-            update = sum([item["sql update count"]
-                            for item in last[tid].values()])
+            insert = sum(item["sql insert count"] for item in last[tid].values())
+            replace = sum(item["sql replace count"] for item in last[tid].values())
+            delete = sum(item["sql delete count"] for item in last[tid].values())
+            update = sum(item["sql update count"] for item in last[tid].values())
             tps = float(insert + replace + delete + update) / self.__seconds(last['time'])
             return int(tps)
         else:
@@ -1687,8 +1684,7 @@ class StatusWidget(Widget):
         tid = str(oceanbase.get_current_tenant())
         if oceanbase.stat_count() > 1:
             last = oceanbase.now()
-            total = float(sum([item["sql select count"]
-                               for item in last[tid].values()]))
+            total = float(sum(item["sql select count"] for item in last[tid].values()))
             qps = total / self.__seconds(last['time'])
             return int(qps)
         else:
@@ -1745,17 +1741,14 @@ class MessageBox(object):
 
     def run(self, anykey=False):
         res = True
-        while (1):
+        while 1:
             c = self.win.getch()
             if anykey:
                 break
             elif c == ord('y'):
                 res = True
                 break
-            elif c == ord('n'):
-                res = False
-                break
-            elif c == ord('q'):
+            elif c in [ord('n'), ord('q')]:
                 res = False
                 break
         self.win.erase()
@@ -1780,16 +1773,14 @@ class PopPad(Widget):
 
     def __do_key(self):
         ch = self.win().getch()
-        stopFlg = False
-        if ch in (ord("q"), ord("Q")):
-            stopFlg = True
+        stopFlg = ch in (ord("q"), ord("Q"))
 
     def __redraw(self):
         self.win().erase()
         self.win().attron(curses.color_pair(1))
         self.win().box()
         self.win().attroff(curses.color_pair(1))
-        self.win().addstr(0, 2, ' %s ' % self.__name, curses.color_pair(3))
+        self.win().addstr(0, 2, f' {self.__name} ', curses.color_pair(3))
 
     def run(self):
         self.__redraw()
@@ -1824,7 +1815,7 @@ class SelectionBox(Widget):
         self.__hot_key = args.get('hot_key', self.__hot_key)
 
         maxy, maxx = parent.getmaxyx()
-        width = max(len(name) + 6, max([len(it) + 5 for it in items]))
+        width = max(len(name) + 6, max(len(it) + 5 for it in items))
         height = min(len(items) + 2, maxy - self.__offset_y)
         Widget.__init__(self, height, width, parent)
         self.resize(height, width)
@@ -1882,7 +1873,7 @@ class SelectionBox(Widget):
         self.win().attron(curses.color_pair(1))
         self.win().box()
         self.win().attroff(curses.color_pair(1))
-        self.win().addstr(0, 2, ' %s ' % self.__name, curses.color_pair(3))
+        self.win().addstr(0, 2, f' {self.__name} ', curses.color_pair(3))
         for idx, item in enumerate(self.items):
             if idx < self.__start_idx or idx >= self.__stop_idx:
                 continue
@@ -1890,7 +1881,7 @@ class SelectionBox(Widget):
             if not self.__hot_key:
                 line = item.center(self.width() - 2)
             elif idx - self.__start_idx < len(self.__chr_list):
-                pref = ' %s)' % self.__chr_list[idx - self.__start_idx]
+                pref = f' {self.__chr_list[idx - self.__start_idx]})'
                 line = pref + item.center(self.width() - 5)
             else:
                 pref = '   '
@@ -1933,7 +1924,7 @@ class ColumnCheckBox(Widget):
         self.__offset_y = args.get('offset_y', self.__offset_y)
         self.__offset_x = args.get('offset_x', self.__offset_x)
         maxy, maxx = parent.getmaxyx()
-        width = max(len(name) + 6, max([len(str(it)) + 9 for it in items]))
+        width = max(len(name) + 6, max(len(str(it)) + 9 for it in items))
         height = min(len(items) + 2, maxy - self.__offset_y - self.__margin_top - self.__margin_bottom)
         Widget.__init__(self, height, width, parent)
         self.resize(height, width)
@@ -1988,11 +1979,11 @@ class ColumnCheckBox(Widget):
         self.win().attron(curses.color_pair(1))
         self.win().box()
         self.win().attroff(curses.color_pair(1))
-        self.win().addstr(0, 2, ' %s ' % self.__name, curses.color_pair(3))
+        self.win().addstr(0, 2, f' {self.__name} ', curses.color_pair(3))
         for idx, item in enumerate(self.items):
             if idx < self.__start_idx or idx >= self.__stop_idx:
                 continue
-            pref = ' [%s]' % (item.enable() and 'X' or ' ')
+            pref = f" [{item.enable() and 'X' or ' '}]"
             line = pref + str(item).center(self.width() - 6)
             flag = 0
             if idx == self.__index:
@@ -2009,10 +2000,7 @@ class ColumnCheckBox(Widget):
                 return self.__index
             self.__redraw()
             self.win().refresh()
-        if self.__index == -1:
-            return []
-        else:
-            return self.items
+        return [] if self.__index == -1 else self.items
 
 
 class InputBox(Widget):
@@ -2032,7 +2020,7 @@ class InputBox(Widget):
         self.mvwin(y, x)
         win.box()
         win.refresh()
-        self.__prompt = prompt + ": "
+        self.__prompt = f"{prompt}: "
         win.addstr(1, 1, self.__prompt)
         win.move(1, 1 + len(self.__prompt))
         self.__textbox = curses.textpad.Textbox(win)
@@ -2047,16 +2035,13 @@ class InputBox(Widget):
             self.win().move(y, new_x)
             self.__result = self.__result[:-1]
             return 0
-        elif ch == 7 or ch == 10:                             # submit
+        elif ch in [7, 10]:                             # submit
             return 7
         elif x == self.width() - 2:
             return 0
         elif ch < 256:
             self.__result += chr(ch)
-            if self.__password:
-                return ord('*')
-            else:
-                return ch
+            return ord('*') if self.__password else ch
 
     def run(self):
         curses.noecho()

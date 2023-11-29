@@ -11,12 +11,7 @@ from mysql.connector import errorcode
 import actions
 
 def do_upgrade(conn, cur, timeout, user, pwd):
-  # upgrade action
-#升级语句对应的action要写在下面的actions begin和actions end这两行之间，
-#因为基准版本更新的时候会调用reset_upgrade_scripts.py来清空actions begin和actions end
-#这两行之间的这些代码，如果不写在这两行之间的话会导致清空不掉相应的代码。
-  across_version = upgrade_across_version(cur)
-  if across_version:
+  if across_version := upgrade_across_version(cur):
     run_upgrade_job(conn, cur, "UPGRADE_ALL", timeout)
   else:
     run_upgrade_job(conn, cur, "UPGRADE_VIRTUAL_SCHEMA", timeout)
@@ -56,8 +51,7 @@ def upgrade_syslog_level(conn, cur):
 def query(cur, sql):
   cur.execute(sql)
   logging.info(sql)
-  results = cur.fetchall()
-  return results
+  return cur.fetchall()
 
 def get_tenant_ids(cur):
   return [_[0] for _ in query(cur, 'select tenant_id from oceanbase.__all_tenant')]

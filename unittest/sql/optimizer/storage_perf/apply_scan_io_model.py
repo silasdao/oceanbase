@@ -33,19 +33,14 @@ def scan_io_model_form(args,
 
     io_cost = Nrow * Tper_row_io_wait * Nsize_factor
     io_cost -= Nrow * Ncol * Tper_row_pipline_factor
-    if io_cost < 0:
-        io_cost = 0
-
+    io_cost = max(io_cost, 0)
     total_cost += io_cost
     return total_cost
 
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 file_name = "get_total.data.prep"

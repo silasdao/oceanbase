@@ -15,20 +15,20 @@ import os
 import glob
 import sys
 
-kv_core_table_id         = int(1)
-max_core_table_id        = int(100)
-max_sys_table_id         = int(10000)
-max_ob_virtual_table_id  = int(15000)
-max_ora_virtual_table_id = int(20000)
-max_sys_view_id          = int(30000)
-base_lob_meta_table_id   = int(50000)
-base_lob_piece_table_id  = int(60000)
-max_lob_table_id         = int(70000)
-min_sys_index_id         = int(100000)
-max_core_index_id        = int(101000)
-max_sys_index_id         = int(200000)
+kv_core_table_id = 1
+max_core_table_id = 100
+max_sys_table_id = 10000
+max_ob_virtual_table_id = 15000
+max_ora_virtual_table_id = 20000
+max_sys_view_id = 30000
+base_lob_meta_table_id = 50000
+base_lob_piece_table_id = 60000
+max_lob_table_id = 70000
+min_sys_index_id = 100000
+max_core_index_id = 101000
+max_sys_index_id = 200000
 
-min_shadow_column_id     = int(32767)
+min_shadow_column_id = 32767
 
 def is_core_table(table_id):
   table_id = int(table_id)
@@ -145,7 +145,7 @@ def add_index_method_end(num_index):
 def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, default_value, column_id, is_hidden, is_storing_column):
   global cpp_f
   set_op = "";
-  if "NULL" == default_value or "null" == default_value:
+  if default_value in ["NULL", "null"]:
     set_op = 'set_null()'
   elif column_type == 'ObIntType':
     set_op = 'set_int({0})'.format(default_value)
@@ -159,7 +159,7 @@ def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_
       else:
         set_op = 'set_varchar(ObString::make_string("{0}"))'.format(default_value)
   elif column_type == 'ObTimestampType':
-    if (default_value == 'CURRENT_TIMESTAMP') or (default_value == 'current_timestmap'):
+    if default_value in ['CURRENT_TIMESTAMP', 'current_timestmap']:
       set_op = 'set_timestamp(ObTimeUtility::current_time())'
     else:
       set_op = 'set_timestamp({0})'.format(default_value)
@@ -170,7 +170,31 @@ def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_
   else:
     raise IOError("ERROR column format: column_name={0} column_type={1}\n".format(column_name, column_type))
   if is_hidden == 'true' or is_storing_column == 'true':
-    if column_id != 0:
+    if column_id == 0:
+      line = """
+  if (OB_SUCC(ret)) {{
+    ObObj {11}_default;
+    {11}_default.{12};
+    ADD_COLUMN_SCHEMA_T_WITH_COLUMN_FLAGS("{0}", //column_name
+      ++column_id, //column_id
+      {1}, //rowkey_id
+      {2}, //index_id
+      {3}, //part_key_pos
+      {4}, //column_type
+      {5}, //column_collation_type
+      {6}, //column_length
+      {7}, //column_precision
+      {8}, //column_scale
+      {9}, //is_nullable
+      {10}, //is_autoincrement
+      {11}_default,
+      {11}_default, //default_value
+      {13}, //is_hidden
+      {14}); //is_storing_column
+  }}
+"""
+      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(),set_op, is_hidden, is_storing_column))
+    else:
       ## index
       line = """
   if (OB_SUCC(ret)) {{
@@ -195,34 +219,9 @@ def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_
   }}
 """
       cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(), set_op, is_hidden, is_storing_column))
-    else:
-      line = """
-  if (OB_SUCC(ret)) {{
-    ObObj {11}_default;
-    {11}_default.{12};
-    ADD_COLUMN_SCHEMA_T_WITH_COLUMN_FLAGS("{0}", //column_name
-      ++column_id, //column_id
-      {1}, //rowkey_id
-      {2}, //index_id
-      {3}, //part_key_pos
-      {4}, //column_type
-      {5}, //column_collation_type
-      {6}, //column_length
-      {7}, //column_precision
-      {8}, //column_scale
-      {9}, //is_nullable
-      {10}, //is_autoincrement
-      {11}_default,
-      {11}_default, //default_value
-      {13}, //is_hidden
-      {14}); //is_storing_column
-  }}
-"""
-      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(),set_op, is_hidden, is_storing_column))
-  else:
-    if column_id != 0:
-      ## index
-      line = """
+  elif column_id != 0:
+    ## index
+    line = """
   if (OB_SUCC(ret)) {{
     ObObj {12}_default;
     {12}_default.{13};
@@ -242,9 +241,9 @@ def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_
       {12}_default); //default_value
   }}
 """
-      cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(), set_op))
-    else:
-      line = """
+    cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(), set_op))
+  else:
+    line = """
   if (OB_SUCC(ret)) {{
     ObObj {11}_default;
     {11}_default.{12};
@@ -264,13 +263,33 @@ def print_default_column(column_name, rowkey_id, index_id, part_key_pos, column_
       {11}_default); //default_value
   }}
 """
-      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(),set_op))
+    cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_name.lower(),set_op))
     
 def print_column(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, column_id, is_hidden, is_storing_column):
   global cpp_f
 
   if is_hidden == 'true' or is_storing_column == 'true':
-    if column_id != 0:
+    if column_id == 0:
+      line = """
+  if (OB_SUCC(ret)) {{
+    ADD_COLUMN_SCHEMA_WITH_COLUMN_FLAGS("{0}", //column_name
+      ++column_id, //column_id
+      {1}, //rowkey_id
+      {2}, //index_id
+      {3}, //part_key_pos
+      {4}, //column_type
+      {5}, //column_collation_type
+      {6}, //column_length
+      {7}, //column_precision
+      {8}, //column_scale
+      {9}, //is_nullable
+      {10},//is_autoincrement
+      {11},//is_hidden
+      {12});//is_storing_column 
+  }}
+"""
+      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement,is_hidden ,is_storing_column))
+    else:
       ## index
       line = """
   if (OB_SUCC(ret)) {{
@@ -291,30 +310,9 @@ def print_column(column_name, rowkey_id, index_id, part_key_pos, column_type, co
   }}
 """
       cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement,is_hidden ,is_storing_column))
-    else:
-      line = """
-  if (OB_SUCC(ret)) {{
-    ADD_COLUMN_SCHEMA_WITH_COLUMN_FLAGS("{0}", //column_name
-      ++column_id, //column_id
-      {1}, //rowkey_id
-      {2}, //index_id
-      {3}, //part_key_pos
-      {4}, //column_type
-      {5}, //column_collation_type
-      {6}, //column_length
-      {7}, //column_precision
-      {8}, //column_scale
-      {9}, //is_nullable
-      {10},//is_autoincrement
-      {11},//is_hidden
-      {12});//is_storing_column 
-  }}
-"""
-      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement,is_hidden ,is_storing_column))
-  else:
-    if column_id != 0:
-      ## index
-      line = """
+  elif column_id != 0:
+    ## index
+    line = """
   if (OB_SUCC(ret)) {{
     ADD_COLUMN_SCHEMA("{0}", //column_name
       column_id + {1}, //column_id
@@ -330,9 +328,9 @@ def print_column(column_name, rowkey_id, index_id, part_key_pos, column_type, co
       {11}); //is_autoincrement
   }}
 """
-      cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement))
-    else:
-      line = """
+    cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement))
+  else:
+    line = """
   if (OB_SUCC(ret)) {{
     ADD_COLUMN_SCHEMA("{0}", //column_name
       ++column_id, //column_id
@@ -348,7 +346,7 @@ def print_column(column_name, rowkey_id, index_id, part_key_pos, column_type, co
       {10}); //is_autoincrement
   }}
 """
-      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement))
+    cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement))
 
     
 def print_discard_column(column_name):
@@ -367,56 +365,7 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
     is_nullable = "false"
 
   if is_hidden == 'true' or is_storing_column == 'true':
-    if column_id != 0:
-      if column_scale > 0 :
-        line = """
-  if (OB_SUCC(ret)) {{
-    ObObj gmt_default;
-    ObObj gmt_default_null;
-
-    gmt_default.set_ext(ObActionFlag::OP_DEFAULT_NOW_FLAG);
-    gmt_default_null.set_null();
-    ADD_COLUMN_SCHEMA_TS_T_WITH_COLUMN_FLAGS("{0}", //column_name
-      column_id + {1}, //column_id
-      {2}, //rowkey_id
-      {3}, //index_id
-      {4}, //part_key_pos
-      {5}, //column_type
-      {6}, //column_collation_type
-      {7}, //column_length
-      {8}, //column_precision
-      {9}, //column_scale
-      {10}, //is_nullable
-      {11}, //is_autoincrement
-      {12}, //is_on_update_for_timestamp
-      gmt_default_null,
-      gmt_default,
-      {13}, //is_hidden
-      {14}); //is_storing_column
-  }}
-"""
-      else :
-        line = """
-  if (OB_SUCC(ret)) {{
-    ADD_COLUMN_SCHEMA_TS_WITH_COLUMN_FLAGS("{0}", //column_name
-      column_id + {1}, //column_id
-      {2}, //rowkey_id
-      {3}, //index_id
-      {4}, //part_key_pos
-      {5}, //column_type
-      {6}, //column_collation_type
-      {7}, //column_length
-      {8}, //column_precision
-      {9}, //column_scale
-      {10}, //is_nullable
-      {11}, //is_autoincrement
-      {12}, //is_on_update_for_timestamp
-      {13}, //is_hidden
-      {14});//is_storing_column 
-  }}
-"""
-      cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp,is_hidden, is_storing_column))
-    else:
+    if column_id == 0:
       if column_scale > 0 :
         line = """
   if (OB_SUCC(ret)) {{
@@ -465,10 +414,55 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
   }}
 """
       cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp, is_hidden, is_storing_column))
-  else:
-    if column_id != 0:
-      if column_scale > 0 :
-        line = """
+    else:
+      line = ("""
+  if (OB_SUCC(ret)) {{
+    ObObj gmt_default;
+    ObObj gmt_default_null;
+
+    gmt_default.set_ext(ObActionFlag::OP_DEFAULT_NOW_FLAG);
+    gmt_default_null.set_null();
+    ADD_COLUMN_SCHEMA_TS_T_WITH_COLUMN_FLAGS("{0}", //column_name
+      column_id + {1}, //column_id
+      {2}, //rowkey_id
+      {3}, //index_id
+      {4}, //part_key_pos
+      {5}, //column_type
+      {6}, //column_collation_type
+      {7}, //column_length
+      {8}, //column_precision
+      {9}, //column_scale
+      {10}, //is_nullable
+      {11}, //is_autoincrement
+      {12}, //is_on_update_for_timestamp
+      gmt_default_null,
+      gmt_default,
+      {13}, //is_hidden
+      {14}); //is_storing_column
+  }}
+""" if column_scale > 0 else """
+  if (OB_SUCC(ret)) {{
+    ADD_COLUMN_SCHEMA_TS_WITH_COLUMN_FLAGS("{0}", //column_name
+      column_id + {1}, //column_id
+      {2}, //rowkey_id
+      {3}, //index_id
+      {4}, //part_key_pos
+      {5}, //column_type
+      {6}, //column_collation_type
+      {7}, //column_length
+      {8}, //column_precision
+      {9}, //column_scale
+      {10}, //is_nullable
+      {11}, //is_autoincrement
+      {12}, //is_on_update_for_timestamp
+      {13}, //is_hidden
+      {14});//is_storing_column 
+  }}
+""")
+      cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp,is_hidden, is_storing_column))
+  elif column_id != 0:
+    if column_scale > 0 :
+      line = """
   if (OB_SUCC(ret)) {{
     ObObj gmt_default;
     ObObj gmt_default_null;
@@ -492,8 +486,8 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
       gmt_default);
   }}
 """
-      else :
-        line = """
+    else :
+      line = """
   if (OB_SUCC(ret)) {{
     ADD_COLUMN_SCHEMA_TS("{0}", //column_name
       column_id + {1}, //column_id
@@ -510,10 +504,10 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
       {12}); //is_on_update_for_timestamp
   }}
 """
-      cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp))
-    else:
-      if column_scale > 0 :
-        line = """
+    cpp_f.write(line.format(column_name, column_id, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp))
+  else:
+    if column_scale > 0 :
+      line = """
   if (OB_SUCC(ret)) {{
     ObObj gmt_default;
     ObObj gmt_default_null;
@@ -537,8 +531,8 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
       gmt_default)
   }}
 """
-      else :
-        line = """
+    else :
+      line = """
   if (OB_SUCC(ret)) {{
     ADD_COLUMN_SCHEMA_TS("{0}", //column_name
       ++column_id, //column_id
@@ -555,7 +549,7 @@ def print_timestamp_column(column_name, rowkey_id, index_id, part_key_pos, colum
       {11}); //is_on_update_for_timestamp
   }}
 """
-      cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp))
+    cpp_f.write(line.format(column_name, rowkey_id, index_id, part_key_pos, column_type, column_collation_type, column_length, column_precision, column_scale, is_nullable, is_autoincrement, is_on_update_for_timestamp))
 
 
 
@@ -731,7 +725,7 @@ def find_column_def(keywords, column_name, is_shadow_pk_column):
     # for shadow_pk_column, need to find the mapping rowkey column in main table,
     # and use the rowkey column's column_id and data_type.
     for col in keywords['rowkey_columns']:
-      if 'shadow_pk_' + str(i - 1) == column_name:
+      if f'shadow_pk_{str(i - 1)}' == column_name:
         return (i + min_shadow_column_id, (column_name, col[1], 'true'))
       else:
         i += 1
@@ -763,17 +757,17 @@ def add_index_columns(columns, **keywords):
   rowkey_id = 1
   is_unique_index = keywords['index_type'] == 'INDEX_TYPE_UNIQUE_LOCAL'
   max_used_column_idx = 1
-  if is_unique_index:
-    # specified index columns.
-    for column in columns:
-      column_idx = add_index_column(keywords, rowkey_id, rowkey_id, column)
-      max_used_column_idx = max(max_used_column_idx, column_idx)
-      rowkey_id += 1
+  # specified index columns.
+  for column in columns:
+    column_idx = add_index_column(keywords, rowkey_id, rowkey_id, column)
+    max_used_column_idx = max(max_used_column_idx, column_idx)
+    rowkey_id += 1
 
+  if is_unique_index:
     # generate shadow pk column whose number equals to rowkeys' number.
     shadow_pk_col_idx = 0
-    for col in keywords['rowkey_columns']:
-      shadow_pk_col_name = 'shadow_pk_' + str(shadow_pk_col_idx)
+    for _ in keywords['rowkey_columns']:
+      shadow_pk_col_name = f'shadow_pk_{str(shadow_pk_col_idx)}'
       column_idx = add_shadow_pk_column(keywords, rowkey_id, shadow_pk_col_name)
       max_used_column_idx = max(max_used_column_idx, column_idx)
       rowkey_id += 1
@@ -787,10 +781,6 @@ def add_index_columns(columns, **keywords):
         add_column(column_def, 0, 0, 0, idx)
         max_used_column_idx = max(max_used_column_idx, idx)
   else:
-    for column in columns:
-      column_idx = add_index_column(keywords, rowkey_id, rowkey_id, column)
-      max_used_column_idx = max(max_used_column_idx, column_idx)
-      rowkey_id += 1
     for col in keywords['rowkey_columns']:
       if col[0].upper() not in [x.upper() for x in columns]:
         column_idx = add_index_column(keywords, rowkey_id, 0, col[0])
@@ -799,27 +789,22 @@ def add_index_columns(columns, **keywords):
   return max_used_column_idx
 
 def add_rowkey_columns(columns, *args):
-  rowkey_id = 1
   index_id = 0
-  if 0 < len(args):
+  if args:
     partition_columns = args[0]
 
-  for column in columns:
+  for rowkey_id, column in enumerate(columns, start=1):
     column_name = column[0]
     if column_name in partition_columns:
       part_key_pos = partition_columns.index(column_name)
       add_column(column, rowkey_id, index_id, part_key_pos + 1)
     else:
       add_column(column, rowkey_id, index_id, 0)
-    rowkey_id += 1
 
 def add_normal_columns(columns, *args):
   rowkey_id = 0
   index_id = 0
-  partition_columns = []
-  if 0 < len(args):
-    partition_columns = args[0]
-
+  partition_columns = args[0] if args else []
   for column in columns:
     column_name = column[0]
     if column_name in partition_columns:
@@ -859,19 +844,16 @@ def add_list_partition_expr_field(value):
   global cpp_f
   type_str = ''
   expr_str = ''
-  if 2 != len(value):
+  if len(value) != 2:
     raise IOError("partition_expr should in format [type, expr]");
-  elif 'list' != value[0] and 'list_columns' != value[0]:
+  elif value[0] not in ['list', 'list_columns']:
     raise IOError("partition_type is invalid", value[0]);
   else:
-    expr_str = '"%s"' % value[1]
-    if 'list' == value[0]:
+    expr_str = f'"{value[1]}"'
+    if value[0] == 'list':
       type_str = 'PARTITION_FUNC_TYPE_LIST'
-    elif 'list_columns' == value[0]:
-      type_str = 'PARTITION_FUNC_TYPE_LIST_COLUMNS'
     else:
-      raise IOError("partition_expr type %s only list or list columns now" % value[0]);
-
+      type_str = 'PARTITION_FUNC_TYPE_LIST_COLUMNS'
     cpp_f.write("  if (OB_SUCC(ret)) {\n")
     line = "    table_schema.get_part_option().set_part_num(1);\n"
     cpp_f.write(line)
@@ -895,30 +877,28 @@ def add_partition_expr_field(value, table_id):
   global cpp_f
   type_str = ''
   expr_str = ''
-  if (len(value) != 3):
+  if len(value) != 3:
     raise IOError("partition_expr should in format [type, expr, part_num]");
+  if value[0] == 'hash':
+    type_str = 'PARTITION_FUNC_TYPE_HASH'
+    expr_str = f'"hash ({value[1]})"'
+  elif value[0] == 'key':
+    type_str = 'PARTITION_FUNC_TYPE_KEY'
+    expr_str = f'"key ({value[1]})"'
   else:
-    if 'hash' == value[0]:
-      type_str = 'PARTITION_FUNC_TYPE_HASH'
-      expr_str = '"hash (%s)"' % value[1]
-    elif 'key' == value[0]:
-      type_str = 'PARTITION_FUNC_TYPE_KEY'
-      expr_str = '"key (%s)"' % value[1]
-    else:
-      raise IOError("partition_expr type %s only support hash or key now" % value[0]);
-    cpp_f.write("  if (OB_SUCC(ret)) {\n")
-    line = "    table_schema.get_part_option().set_part_func_type(%s);\n" % type_str
-    cpp_f.write(line)
-    line = "    if (OB_FAIL(table_schema.get_part_option().set_part_expr(%s))) {\n" % expr_str
-    cpp_f.write(line)
-    line = "      LOG_WARN(\"set_part_expr failed\", K(ret));\n";
-    cpp_f.write(line)
-    cpp_f.write("    }\n")
-    line = "    table_schema.get_part_option().set_part_num(%s);\n" % value[2]
-    cpp_f.write(line)
-    line = "    table_schema.set_part_level(PARTITION_LEVEL_ONE);\n"
-    cpp_f.write(line)
-    cpp_f.write("  }\n")
+    raise IOError(f"partition_expr type {value[0]} only support hash or key now");
+  cpp_f.write("  if (OB_SUCC(ret)) {\n")
+  line = "    table_schema.get_part_option().set_part_func_type(%s);\n" % type_str
+  cpp_f.write(line)
+  line = "    if (OB_FAIL(table_schema.get_part_option().set_part_expr(%s))) {\n" % expr_str
+  cpp_f.write(line)
+  line = "      LOG_WARN(\"set_part_expr failed\", K(ret));\n";
+  cpp_f.write(line)
+  cpp_f.write("    }\n")
+  line = "    table_schema.get_part_option().set_part_num(%s);\n" % value[2]
+  cpp_f.write(line)
+  cpp_f.write("    table_schema.set_part_level(PARTITION_LEVEL_ONE);\n")
+  cpp_f.write("  }\n")
 
 def calculate_rowkey_column_num(keywords):
   rowkey_columns = keywords['rowkey_columns']
@@ -927,7 +907,7 @@ def calculate_rowkey_column_num(keywords):
 def check_fileds(fields, keywords):
   for field in fields:
     if field not in keywords and not keywords.has_key('index_name'):
-      if not field in index_only_fields:
+      if field not in index_only_fields:
         raise IOError("no field {0} found in def_table_schema, table_name={1}".format(field, keywords["table_name"]))
 
   non_field_keywords = ('index', 'enable_column_def_enum', 'base_def_keywords',
@@ -952,7 +932,7 @@ def fill_default_values(default_filed_values, keywords, missing_fields, index_va
 def gen_history_table_def(table_id, keywords):
   new_keywords = copy.deepcopy(keywords)
   new_keywords["table_id"] = table_id
-  new_keywords["table_name"] = "%s_history" % new_keywords["table_name"]
+  new_keywords["table_name"] = f'{new_keywords["table_name"]}_history'
   rowkey_columns = new_keywords["rowkey_columns"]
   rowkey_columns.append(("schema_version", "int"))
 
@@ -960,7 +940,7 @@ def gen_history_table_def(table_id, keywords):
   to_del = None
   for i in range(len(cols)):
     col = cols[i]
-    if "schema_version" == col[0]:
+    if col[0] == "schema_version":
       to_del = col
       continue
     l = list(col)
@@ -978,7 +958,7 @@ def gen_history_table_def(table_id, keywords):
 def gen_history_table_def_of_task(table_id, keywords):
   new_keywords = copy.deepcopy(keywords)
   new_keywords["table_id"] = table_id
-  new_keywords["table_name"] = "%s_history" % new_keywords["table_name"]
+  new_keywords["table_name"] = f'{new_keywords["table_name"]}_history'
 
   cols = new_keywords["normal_columns"]
   cols.append(('create_time', 'timestamp', 'false'))
@@ -1011,9 +991,9 @@ def gen_inner_lob_aux_table_def(data_table_name, table_id, table_type, keywords,
     new_keywords["is_cluster_private"] = cluster_private
 
   if table_type == "AUX_LOB_META":
-    new_keywords["table_name"] = data_table_name + "_aux_lob_meta"
-  else :
-    new_keywords["table_name"] = data_table_name + "_aux_lob_piece"
+    new_keywords["table_name"] = f"{data_table_name}_aux_lob_meta"
+  else:
+    new_keywords["table_name"] = f"{data_table_name}_aux_lob_piece"
   return new_keywords
 
 def gen_iterate_core_inner_table_def(table_id, table_name, table_type, keywords):
@@ -1053,14 +1033,12 @@ def replace_agent_table_columns_def(columns):
     elif t == "longtext":
       pass
     elif t.startswith("varchar:") or t.startswith("varbinary:"):
-      if len(column) >= 4 and "false" == column[2] and "" == column[3]:
+      if len(column) >= 4 and column[2] == "false" and column[3] == "":
         column[2] = "true"
-    elif t.startswith("number:"):
-      pass
-    else:
+    elif not t.startswith("number:"):
       raise Exception("unsupported type", t)
     column[1] = t
-    columns[i] = column[0:3] # ignore default value
+    columns[i] = column[:3]
 
 def __gen_oracle_vt_base_on_mysql(table_id, keywords, table_name_suffix):
   in_tenant_space = keywords.has_key('in_tenant_space') and keywords['in_tenant_space']
@@ -1110,7 +1088,7 @@ def gen_sys_agent_virtual_table_def(table_id, keywords):
 def __gen_mysql_vt(table_id, keywords, table_name_suffix):
   if keywords.has_key('in_tenant_space') and keywords['in_tenant_space']:
     raise Exception("base table should not in_tenant_space")
-  elif 'SYSTEM_TABLE' != keywords['table_type'] and 'VIRTUAL_TABLE' != keywords['table_type']:
+  elif keywords['table_type'] not in ['SYSTEM_TABLE', 'VIRTUAL_TABLE']:
     raise Exception("unsupported table type", keywords['table_type'])
   new_keywords = copy.deepcopy(keywords)
   new_keywords["table_type"] = 'VIRTUAL_TABLE'
@@ -1147,10 +1125,10 @@ def gen_agent_virtual_table_def(table_id, keywords):
   return new_keywords
 
 def gen_oracle_mapping_virtual_table_base_def(table_id, keywords, real_table):
-  if True == real_table:
+  if real_table == True:
     new_keywords = __gen_oracle_vt_base_on_mysql(table_id, keywords, "_REAL_AGENT")
     new_keywords["is_real_virtual_table"] = True
-  else :
+  else:
     new_keywords = __gen_oracle_vt_base_on_mysql(table_id, keywords, "")
 
   new_keywords["name_postfix"] = "_ORA"
@@ -1158,12 +1136,12 @@ def gen_oracle_mapping_virtual_table_base_def(table_id, keywords, real_table):
   if new_keywords.has_key("partition_columns"):
     new_keywords["partition_columns"] = [ c.upper() for c in new_keywords["partition_columns"] ]
 
-  if True == real_table :
+  if real_table == True:
     new_keywords["mapping_tid"] = table_name2tid(keywords['table_name'])
     new_keywords["self_tid"] = table_name2tid(new_keywords['table_name'] + new_keywords['name_postfix'])
     new_keywords["real_vt"] = True
     real_table_virtual_table_names.append(new_keywords)
-  else :
+  else:
     all_ora_mapping_virtual_table_org_tables.append(table_name2tid(keywords['table_name']))
     all_ora_mapping_virtual_tables.append(table_name2tid(new_keywords['table_name'] + new_keywords['name_postfix']))
   return new_keywords
@@ -1173,10 +1151,10 @@ def gen_oracle_mapping_virtual_table_def(table_id, keywords):
 
 def gen_oracle_mapping_real_virtual_table_def(table_id, keywords):
   in_tenant_space = keywords.has_key('in_tenant_space') and keywords['in_tenant_space']
-  if False == in_tenant_space:
+  if in_tenant_space == False:
     raise Exception("real table must be tenant space", keywords['rowkey_columns'])
   is_cluster_private = keywords.has_key('is_cluster_private') and keywords['is_cluster_private']
-  if True == is_cluster_private:
+  if is_cluster_private == True:
     raise Exception("real table must be not cluster_private")
   new_keywords = gen_oracle_mapping_virtual_table_base_def(table_id, keywords, True)
 
@@ -1189,7 +1167,7 @@ def gen_oracle_mapping_real_virtual_table_def(table_id, keywords):
         key_tenant_id = nth_key
         break
       nth_key = nth_key + 1
-    if -1 != key_tenant_id and 0 != key_tenant_id:
+    if key_tenant_id not in [-1, 0]:
       raise Exception("tenant id of real table must be the first key", keywords['rowkey_columns'])
   return new_keywords
 
@@ -1201,7 +1179,7 @@ def gen_cluster_config_def(table_id, table_name, keywords):
 
 def generate_cluster_private_table(f):
   global cluster_private_tables
-  all_tables = [x for x in cluster_private_tables]
+  all_tables = list(cluster_private_tables)
   all_tables.sort(key = lambda x: x['table_name'])
   cluster_private_switch = '\n'
   for kw in all_tables:
@@ -1226,13 +1204,15 @@ def generate_sys_index_table_misc_data(f):
   f.write('\n\n#ifdef SYS_INDEX_TABLE_ID_SWITCH\n' + sys_index_table_id_switch + '\n#endif\n')
 
   sys_index_data_table_id_switch = '\n'
-  for data_table_name in data_table_dict.keys():
-    sys_index_data_table_id_switch += 'case ' + table_name2tid(data_table_name) + ':\n'
+  for data_table_name in data_table_dict:
+    sys_index_data_table_id_switch += (
+        f'case {table_name2tid(data_table_name)}' + ':\n')
   f.write('\n\n#ifdef SYS_INDEX_DATA_TABLE_ID_SWITCH\n' + sys_index_data_table_id_switch + '\n#endif\n')
 
   sys_index_data_table_id_to_index_ids_switch = '\n'
   for data_table_name, sys_indexs in data_table_dict.items():
-    sys_index_data_table_id_to_index_ids_switch += 'case ' + table_name2tid(data_table_name) + ': {\n'
+    sys_index_data_table_id_to_index_ids_switch += (
+        f'case {table_name2tid(data_table_name)}' + ': {\n')
     for kw in sys_indexs:
       sys_index_data_table_id_to_index_ids_switch += '  if (FAILEDx(index_tids.push_back(' + table_name2index_tid(kw['table_name'], kw['index_name']) +  '))) {\n'
       sys_index_data_table_id_to_index_ids_switch += '    LOG_WARN(\"fail to push back index tid\", KR(ret));\n'
@@ -1243,11 +1223,14 @@ def generate_sys_index_table_misc_data(f):
 
   sys_index_data_table_id_to_index_schema_switch = '\n'
   for data_table_name, sys_indexs in data_table_dict.items():
-    sys_index_data_table_id_to_index_schema_switch += 'case ' + table_name2tid(data_table_name) + ': {\n'
+    sys_index_data_table_id_to_index_schema_switch += (
+        f'case {table_name2tid(data_table_name)}' + ': {\n')
     for kw in sys_indexs:
       method_name = kw['table_name'].replace('$', '_').strip('_').lower() + '_' + kw['index_name'].lower() + '_schema'
       sys_index_data_table_id_to_index_schema_switch += '  index_schema.reset();\n'
-      sys_index_data_table_id_to_index_schema_switch += '  if (FAILEDx(ObInnerTableSchema::' + method_name +'(index_schema))) {\n'
+      sys_index_data_table_id_to_index_schema_switch += (
+          f'  if (FAILEDx(ObInnerTableSchema::{method_name}' +
+          '(index_schema))) {\n')
       sys_index_data_table_id_to_index_schema_switch += '    LOG_WARN(\"fail to create index schema\", KR(ret), K(tenant_id), K(data_table_id));\n'
       sys_index_data_table_id_to_index_schema_switch += '  } else if (OB_FAIL(append_table_(tenant_id, index_schema, tables))) {\n'
       sys_index_data_table_id_to_index_schema_switch += '    LOG_WARN(\"fail to append\", KR(ret), K(tenant_id), K(data_table_id));\n'
@@ -1266,7 +1249,7 @@ def generate_sys_index_table_misc_data(f):
 
 def generate_virtual_agent_misc_data(f):
   global all_agent_virtual_tables
-  all_agent = [x for x in all_agent_virtual_tables]
+  all_agent = list(all_agent_virtual_tables)
   all_agent.sort(key = lambda x: x['table_name'])
   # for ob_sql_partition_location_cache.cpp, switch agent virtual table location
   location_switch = '\n'
@@ -1274,26 +1257,25 @@ def generate_virtual_agent_misc_data(f):
     location_switch += 'case ' + table_name2tid(kw['table_name']) + ':\n'
   f.write('\n#ifdef AGENT_VIRTUAL_TABLE_LOCATION_SWITCH\n' + location_switch + '\n#endif\n')
 
-  # for ob_virtual_table_iterator_factory.cpp, init agent virtual iterator
-  count = 0
   iter_init = '\n'
-  for kw in all_agent:
+  for count, kw in enumerate(all_agent):
     if count % 20 == 0:
       if count != 0:
         iter_init += '  END_CREATE_VT_ITER_SWITCH_LAMBDA\n\n'
       iter_init += '  BEGIN_CREATE_VT_ITER_SWITCH_LAMBDA'
 
-    count += 1
-
     tid = table_name2tid(kw['table_name'])
     base_kw = kw['base_def_keywords']
     base_tid = table_name2tid(base_kw['table_name'])
     in_tenant_space = base_kw.has_key('in_tenant_space') and base_kw['in_tenant_space']
-    only_sys = all_only_sys_table_name.has_key(base_kw['table_name']) and all_only_sys_table_name[base_kw['table_name']] and "OB_SYS_DATABASE_ID" != kw['database_id']
+    only_sys = (all_only_sys_table_name.has_key(base_kw['table_name'])
+                and all_only_sys_table_name[base_kw['table_name']]
+                and kw['database_id'] != "OB_SYS_DATABASE_ID")
     mysql_compat_agent_table_name = base_kw['table_name']
-    mysql_compat_agent = (mysql_compat_agent_tables.has_key(mysql_compat_agent_table_name)
-                          and mysql_compat_agent_tables[mysql_compat_agent_table_name]
-                          and "OB_SYS_DATABASE_ID" == kw['database_id'])
+    mysql_compat_agent = (
+        mysql_compat_agent_tables.has_key(mysql_compat_agent_table_name)
+        and mysql_compat_agent_tables[mysql_compat_agent_table_name]
+        and kw['database_id'] == "OB_SYS_DATABASE_ID")
     iter_init += """
     case %s: {
       ObAgentVirtualTable *agent_iter = NULL;
@@ -1361,7 +1343,8 @@ def def_agent_index_table(index_name, index_table_id, index_columns, index_using
   global StringIO
   global sys_index_tables
   kw = copy.deepcopy(keywords)
-  index_kw = copy.deepcopy(all_def_keywords[real_table_name + '_' + real_index_name])
+  index_kw = copy.deepcopy(
+      all_def_keywords[f'{real_table_name}_{real_index_name}'])
   if kw.has_key('index'):
     raise Exception("should not have index", kw['table_name'])
   if not kw['real_vt']:
@@ -1372,11 +1355,11 @@ def def_agent_index_table(index_name, index_table_id, index_columns, index_using
     raise Exception("wrong index name", index_name, real_index_name)
   if not is_ora_virtual_table(index_table_id):
     raise Exception("index table id is invalid", index_table_id)
-  if not kw['base_def_keywords']['table_name'] == real_table_name:
+  if kw['base_def_keywords']['table_name'] != real_table_name:
     raise Exception("table name mismatch", kw['base_def_keywords']['table_name'], real_table_name)
-  if not index_kw['index_name'] == real_index_name:
+  if index_kw['index_name'] != real_index_name:
     raise Exception("index name mismatch", index_kw['index_name'], real_index_name)
-  if not index_kw['index_columns'] == index_columns:
+  if index_kw['index_columns'] != index_columns:
     raise Exception("index column mismatch", index_kw['index_columns'], index_columns)
 
 
@@ -1396,7 +1379,7 @@ def def_agent_index_table(index_name, index_table_id, index_columns, index_using
   kw['partition_columns'] = []
   kw['partition_expr'] = []
   kw['storing_columns'] =[]
-  kw["mapping_tid"] = table_name2tid(real_table_name + '_' + real_index_name)
+  kw["mapping_tid"] = table_name2tid(f'{real_table_name}_{real_index_name}')
   kw["self_tid"] = table_name2index_tid(kw['table_name'] + kw['name_postfix'], kw['index_name'])
   kw["real_vt"] = True
   real_table_virtual_table_names.append(kw)
@@ -1423,7 +1406,7 @@ def gen_iterate_private_virtual_table_def(
   # 1. system table
   # 2. in tenant space & is cluster private
   # 3. rowkey columns should start with `tenant_id`
-  if 'SYSTEM_TABLE' != kw['table_type']:
+  if kw['table_type'] != 'SYSTEM_TABLE':
     raise Exception("unsupported table type", kw['table_type'])
   elif not kw.has_key('in_tenant_space') or not kw['in_tenant_space']:
     raise Exception("base table should be in_tenant_space")
@@ -1460,7 +1443,7 @@ def gen_iterate_private_virtual_table_def(
 
 def generate_iterate_private_virtual_table_misc_data(f):
   global all_iterate_private_virtual_tables
-  tables = [x for x in all_iterate_private_virtual_tables]
+  tables = list(all_iterate_private_virtual_tables)
   tables.sort(key = lambda x: x['table_name'])
   # for ob_sql_partition_location_cache.cpp, switch iterate virtual table location
   location_switch = '\n'
@@ -1468,16 +1451,12 @@ def generate_iterate_private_virtual_table_misc_data(f):
     location_switch += 'case ' + table_name2tid(kw['table_name']) + ':\n'
   f.write('\n\n#ifdef ITERATE_PRIVATE_VIRTUAL_TABLE_LOCATION_SWITCH\n' + location_switch + '\n#endif\n')
 
-  # for ob_virtual_table_iterator_factory.cpp, init iterate virtual iterator
-  count = 0
   iter_init = '\n'
-  for kw in tables:
+  for count, kw in enumerate(tables):
     if count % 20 == 0:
       if count != 0:
         iter_init += '  END_CREATE_VT_ITER_SWITCH_LAMBDA\n\n'
       iter_init += '  BEGIN_CREATE_VT_ITER_SWITCH_LAMBDA'
-
-    count += 1
 
     tid = table_name2tid(kw['table_name'])
     base_kw = kw['base_def_keywords']
@@ -1509,7 +1488,7 @@ def gen_iterate_virtual_table_def(table_id, table_name, keywords, in_tenant_spac
   kw = copy.deepcopy(keywords);
   kw['table_id'] = table_id
   kw['table_name'] =  table_name
-  if 'SYSTEM_TABLE' != kw['table_type']:
+  if kw['table_type'] != 'SYSTEM_TABLE':
     raise Exception("unsupported table type", kw['table_type'])
   elif not kw.has_key('in_tenant_space') or not kw['in_tenant_space']:
     raise Exception("base table should be in_tenant_space")
@@ -1523,8 +1502,9 @@ def gen_iterate_virtual_table_def(table_id, table_name, keywords, in_tenant_spac
 
   # check and add tenant_id in primary key and index.
   kw['normal_columns'] = filter(lambda x: x[0] != 'tenant_id', kw['normal_columns'])
-  ten_idx = [i for i, x in enumerate(kw['rowkey_columns']) if x[0] == 'tenant_id']
-  if ten_idx:
+  if ten_idx := [
+      i for i, x in enumerate(kw['rowkey_columns']) if x[0] == 'tenant_id'
+  ]:
     if ten_idx[0] != 0:
       raise Exception("tenant_id must be prefix of primary key", kw['rowkey_columns'])
   else:
@@ -1549,7 +1529,7 @@ def gen_iterate_virtual_table_def(table_id, table_name, keywords, in_tenant_spac
 
 def generate_iterate_virtual_table_misc_data(f):
   global all_iterate_virtual_tables
-  tables = [x for x in all_iterate_virtual_tables]
+  tables = list(all_iterate_virtual_tables)
   tables.sort(key = lambda x: x['table_name'])
   # for ob_sql_partition_location_cache.cpp, switch iterate virtual table location
   location_switch = '\n'
@@ -1557,16 +1537,12 @@ def generate_iterate_virtual_table_misc_data(f):
     location_switch += 'case ' + table_name2tid(kw['table_name']) + ':\n'
   f.write('\n\n#ifdef ITERATE_VIRTUAL_TABLE_LOCATION_SWITCH\n' + location_switch + '\n#endif\n')
 
-  # for ob_virtual_table_iterator_factory.cpp, init iterate virtual iterator
-  count = 0
   iter_init = '\n'
-  for kw in tables:
+  for count, kw in enumerate(tables):
     if count % 20 == 0:
       if count != 0:
         iter_init += '  END_CREATE_VT_ITER_SWITCH_LAMBDA\n\n'
       iter_init += '  BEGIN_CREATE_VT_ITER_SWITCH_LAMBDA'
-
-    count += 1
 
     tid = table_name2tid(kw['table_name'])
     base_kw = kw['base_def_keywords']
@@ -1603,7 +1579,7 @@ def get_column_def_enum(**keywords):
   table_name = keywords['table_name'] + keywords['name_postfix']
   t = map(lambda x : x.upper().replace('#', '_'), columns)
   if len(t) > 0 and 'enable_column_def_enum' in keywords and keywords['enable_column_def_enum']:
-    t[0] = '%s = common::OB_APP_MIN_COLUMN_ID' % t[0]
+    t[0] = f'{t[0]} = common::OB_APP_MIN_COLUMN_ID'
     content = '''
 struct %s {
   enum {

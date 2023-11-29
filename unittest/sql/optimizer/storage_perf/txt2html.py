@@ -28,10 +28,13 @@ def txtParse(src,dest):
 #        else:
         if newline8.startswith("<font") == False:
             out.write("<font color=#0000FF>")
-            out.write(newline8 + "<br>")
+            out.write(f"{newline8}<br>")
         if newline8.startswith("<font") == False:
             out.write("</font>")
     out.write("</font></body>")
 
 if __name__=="__main__":
-    txtParse(sys.argv[1], os.path.dirname(sys.argv[1]) + "/" + os.path.basename(sys.argv[1]) + ".html")
+    txtParse(
+        sys.argv[1],
+        f"{os.path.dirname(sys.argv[1])}/{os.path.basename(sys.argv[1])}.html",
+    )

@@ -60,21 +60,18 @@ def hash_model_arr(arg_sets,
                    Tstart_up,
                    Tright_outer_once,
                    Tleft_outer_once):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(hash_model_form(single_arg_set,
-                                   Tstart_up,
-                                   Tright_outer_once,
-                                   Tleft_outer_once))
+    res = [
+        hash_model_form(
+            single_arg_set, Tstart_up, Tright_outer_once, Tleft_outer_once
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 hash_model = Model(hash_model_arr)
 hash_model.set_param_hint("Tstart_up", min=0.0)

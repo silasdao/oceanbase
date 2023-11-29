@@ -10,47 +10,43 @@ def get_py_filename_list(except_filter_filename_list):
   filename_list = os.listdir(os.path.dirname(os.path.abspath(sys.argv[0])))
   for filename in filename_list:
     if filename.endswith('.py'):
-      is_filtered = False
-      for except_filter_filename in except_filter_filename_list:
-        if filename == except_filter_filename:
-          is_filtered = True
-          break
-      if False == is_filtered:
+      is_filtered = any(
+          filename == except_filter_filename
+          for except_filter_filename in except_filter_filename_list)
+      if not is_filtered:
         py_filename_list.append(filename)
   py_filename_list.sort()
   return py_filename_list
 
 def get_concat_sub_files_lines(py_filename_list, file_splitter_line, \
     sub_filename_line_prefix, sub_file_module_end_line):
-  concat_sub_files_lines = []
-  # 写入__init__.py
-  concat_sub_files_lines.append(file_splitter_line + '\n')
-  concat_sub_files_lines.append(sub_filename_line_prefix + '__init__.py\n')
-  concat_sub_files_lines.append('##!/usr/bin/env python\n')
-  concat_sub_files_lines.append('## -*- coding: utf-8 -*-\n')
+  concat_sub_files_lines = [
+      file_splitter_line + '\n',
+      sub_filename_line_prefix + '__init__.py\n',
+      '##!/usr/bin/env python\n',
+      '## -*- coding: utf-8 -*-\n',
+  ]
   # 写入其他py文件
   for sub_py_filename in py_filename_list:
-    sub_py_file = open(sub_py_filename, 'r')
-    sub_py_file_lines = sub_py_file.readlines()
-    concat_sub_files_lines.append(file_splitter_line + '\n')
-    concat_sub_files_lines.append(sub_filename_line_prefix + sub_py_filename + '\n')
-    for sub_py_file_line in sub_py_file_lines:
-      concat_sub_files_lines.append('#' + sub_py_file_line)
-    sub_py_file.close()
+    with open(sub_py_filename, 'r') as sub_py_file:
+      sub_py_file_lines = sub_py_file.readlines()
+      concat_sub_files_lines.append(file_splitter_line + '\n')
+      concat_sub_files_lines.append(sub_filename_line_prefix + sub_py_filename + '\n')
+      concat_sub_files_lines.extend(f'#{sub_py_file_line}'
+                                    for sub_py_file_line in sub_py_file_lines)
   concat_sub_files_lines.append(file_splitter_line + '\n')
   concat_sub_files_lines.append(sub_file_module_end_line + '\n')
   return concat_sub_files_lines
 
 def gen_upgrade_script(filename, concat_sub_files_lines, extra_lines_str):
   os.chmod(filename, stat.S_IRUSR + stat.S_IWUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IXGRP + stat.S_IROTH + stat.S_IXOTH)
-  file = open(filename, 'w')
-  file.write('#!/usr/bin/env python\n')
-  file.write('# -*- coding: utf-8 -*-\n')
-  for concat_sub_files_line in concat_sub_files_lines:
-    file.write(concat_sub_files_line)
-  file.write('\n')
-  file.write(extra_lines_str)
-  file.close()
+  with open(filename, 'w') as file:
+    file.write('#!/usr/bin/env python\n')
+    file.write('# -*- coding: utf-8 -*-\n')
+    for concat_sub_files_line in concat_sub_files_lines:
+      file.write(concat_sub_files_line)
+    file.write('\n')
+    file.write(extra_lines_str)
   os.chmod(filename, stat.S_IRUSR + stat.S_IXUSR + stat.S_IRGRP + stat.S_IXGRP + stat.S_IROTH + stat.S_IXOTH)
 
 def get_main_func_str(run_filename):
@@ -65,7 +61,7 @@ if __name__ == '__main__':
   split_py_files(sub_files_dir)
   exec('from ' + sub_files_short_dir + '.{run_module_name} import do_upgrade_by_argv')
   do_upgrade_by_argv(sys.argv[1:])
-""".format(run_module_name = run_filename[0:run_filename.rfind('.')])
+""".format(run_module_name=run_filename[:run_filename.rfind('.')])
 
 def get_pre_and_post_extra_lines_strs(upgrade_pre_filename, upgrade_post_filename, \
     do_upgrade_pre_filename, do_upgrade_post_filename, \

@@ -97,19 +97,17 @@ class Config(object):
     def gen_params(self):
         if self.is_printing_help_c:
             return " -h "
-        else:
-            args = " "
-            for key in filter(lambda aname: aname.endswith('_c') and aname != 'is_printing_help_c', dir(self)):
-                val = self.__getattribute__(key)
+        args = " "
+        for key in filter(lambda aname: aname.endswith('_c') and aname != 'is_printing_help_c', dir(self)):
+            val = self.__getattribute__(key)
                 # MyLogger.info("config object %s %s", key, val)
-                if key.startswith('is'):
-                    if val is True:
-                        args = args + Config.config_map_dict[key]
-                else:
-                    if val is not None:
-                        args = args + Config.config_map_dict[key]
-                        args = args + " " + str(val) + " "
-            return args
+            if key.startswith('is'):
+                if val is True:
+                    args = args + Config.config_map_dict[key]
+            elif val is not None:
+                args = args + Config.config_map_dict[key]
+                args = f"{args} {str(val)} "
+        return args
 
 
 if __name__ == '__main__':

@@ -9,7 +9,7 @@ import sys
 inner_arg = ""
 
 def single_bench(arg):
-    cmd = "./storage_bench %s"%(arg)
+    cmd = f"./storage_bench {arg}"
     sp.check_call(cmd, shell = True)
 
 if __name__ == '__main__':

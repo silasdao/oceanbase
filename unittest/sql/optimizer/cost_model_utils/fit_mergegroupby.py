@@ -83,10 +83,7 @@ mg_model.set_param_hint("Tgroup_cmp_col", min=0.0)
 mg_model.set_param_hint("Tcopy_col", min=0.0)
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

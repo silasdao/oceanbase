@@ -8,15 +8,13 @@ def init_func(self, conf):
 
 
 def get_bench_cmd(self):
-    cmd = './cost_model_util ' + self.conf.gen_params()
-    return cmd
+    return f'./cost_model_util {self.conf.gen_params()}'
 
 def get_data_preprocess_cmd(self):
-    cmd = 'python preprocess.py -i {0} -o {1} -d'.format(
-        self.__class__.__name__ + '_result',
-        self.__class__.__name__ + '_result_final'
+    return 'python preprocess.py -i {0} -o {1} -d'.format(
+        f'{self.__class__.__name__}_result',
+        f'{self.__class__.__name__}_result_final',
     )
-    return cmd
 
 def do_bench(self):
     MyLogger.info(self.conf)
@@ -37,12 +35,11 @@ class op_generator(object):
     def gen_operator(name):
         if op_generator.op_dict.has_key(name):
             return op_generator.op_dict[name]
-        else:
-            cls = type(name, (object,), {'__init__': init_func, 'do_bench': do_bench,
-                                         'get_bench_cmd': get_bench_cmd,
-                                         'get_data_preprocess_cmd': get_data_preprocess_cmd})
-            op_generator.op_dict[name] = cls
-            return cls
+        cls = type(name, (object,), {'__init__': init_func, 'do_bench': do_bench,
+                                     'get_bench_cmd': get_bench_cmd,
+                                     'get_data_preprocess_cmd': get_data_preprocess_cmd})
+        op_generator.op_dict[name] = cls
+        return cls
 
 
 if __name__ == '__main__':

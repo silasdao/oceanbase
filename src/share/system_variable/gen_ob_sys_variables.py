@@ -89,148 +89,148 @@ file_head_annotation = """/**
 """
 
 def parse_json(json_file_name):
-  json_file = open(json_file_name,'r')
-  all_the_vars = json_file.read( )
-  json_Dict = json.loads(all_the_vars)
-  list_sorted_by_name= sorted(json_Dict.iteritems(), key=lambda d:d[0])
-  list_sorted_by_id= sorted(json_Dict.iteritems(), key=lambda d:d[1]['id'])
-  json_file.close()
+  with open(json_file_name,'r') as json_file:
+    all_the_vars = json_file.read( )
+    json_Dict = json.loads(all_the_vars)
+    list_sorted_by_name= sorted(json_Dict.iteritems(), key=lambda d:d[0])
+    list_sorted_by_id= sorted(json_Dict.iteritems(), key=lambda d:d[1]['id'])
   return (json_Dict, list_sorted_by_name, list_sorted_by_id)
 
 def make_alias_file(pdir, alias_file_name, sorted_list):
-  alias_file =open(alias_file_name,'w')
-  alias_file.write(file_head_annotation);
-  suffix_idx = alias_file_name.find(".h")
-  file_def_str = "OCEANBASE_" + pdir.replace("/", "_").upper() + "_" + alias_file_name[0 : suffix_idx].upper() + "_"
-  alias_file.write("#ifndef " + file_def_str + "\n");
-  alias_file.write("#define " + file_def_str + "\n");
-  alias_file.write("namespace oceanbase\n");
-  alias_file.write("{\n");
-  alias_file.write("namespace share\n");
-  alias_file.write("{\n");
-  for (name,attributes) in sorted_list:
-    alias = attributes['name']
-    alias_prefix = alias[0:3]
-    if alias_prefix == str("ob_"):
-      alias = alias[3:]
-    alias_upper = alias.upper()
-    out = "  static const char* const OB_SV_" + str(alias_upper) + " = \"" + str(name) + "\";\n"
-    alias_file.write(out)
+  with open(alias_file_name,'w') as alias_file:
+    alias_file.write(file_head_annotation);
+    suffix_idx = alias_file_name.find(".h")
+    file_def_str = ("OCEANBASE_" + pdir.replace("/", "_").upper() + "_" +
+                    alias_file_name[:suffix_idx].upper() + "_")
+    alias_file.write(f"#ifndef {file_def_str}" + "\n");
+    alias_file.write(f"#define {file_def_str}" + "\n");
+    alias_file.write("namespace oceanbase\n");
+    alias_file.write("{\n");
+    alias_file.write("namespace share\n");
+    alias_file.write("{\n");
+    for (name,attributes) in sorted_list:
+      alias = attributes['name']
+      alias_prefix = alias[:3]
+      if alias_prefix == "ob_":
+        alias = alias[3:]
+      alias_upper = alias.upper()
+      out = (f"  static const char* const OB_SV_{str(alias_upper)}" + " = \"" +
+             str(name) + "\";\n")
+      alias_file.write(out)
 
-  alias_file.write("\n");
-  alias_file.write("}\n");
-  alias_file.write("}\n");
-  alias_file.write("#endif //OCEANBASE_COMMON_OB_SYSTEM_VARIABLE_ALIAS_H_\n");
-  alias_file.write("\n");
+    alias_file.write("\n");
+    alias_file.write("}\n");
+    alias_file.write("}\n");
+    alias_file.write("#endif //OCEANBASE_COMMON_OB_SYSTEM_VARIABLE_ALIAS_H_\n");
+    alias_file.write("\n");
 
-  alias_file.close()
-  print("Generate " + str(alias_file_name) + " successfully!\n");
+  print(f"Generate {str(alias_file_name)}" + " successfully!\n");
   return
 
 def make_head_file(pdir, head_file_name, sorted_list):
-  head_file = open(head_file_name,'w')
-  head_file.write(file_head_annotation);
-  suffix_idx = head_file_name.find(".h")
-  file_def_str = "OCEANBASE_" + pdir.replace("/", "_").upper() + "_" + head_file_name[0 : suffix_idx].upper() + "_"
-  head_file.write("#ifndef " + file_def_str + "\n");
-  head_file.write("#define " + file_def_str + "\n");
-  head_file.write("#include \"share/system_variable/ob_sys_var_class_type.h\"\n");
-  head_file.write("#include <stdint.h>\n");
-  head_file.write("#include \"common/object/ob_object.h\"\n");
-  head_file.write("namespace oceanbase\n");
-  head_file.write("{\n");
-  head_file.write("namespace share\n");
-  head_file.write("{\n");
-  head_file.write("// ObSysVarFlag的值不可随意增删改, 有任何增删改要同时同步到sql/session/gen_ob_sys_variables.py的flag_value_dict变量中\n");
-  head_file.write("struct ObSysVarFlag\n");
-  head_file.write("{\n");
-  head_file.write("  const static int64_t NONE = 0LL;\n");
-  head_file.write("  const static int64_t GLOBAL_SCOPE = 1LL;\n");
-  head_file.write("  const static int64_t SESSION_SCOPE = (1LL << 1);\n");
-  head_file.write("  const static int64_t READONLY = (1LL << 2);\n");
-  head_file.write("  const static int64_t SESSION_READONLY = (1LL << 3);\n");
-  head_file.write("  const static int64_t INVISIBLE = (1LL << 4);\n");
-  head_file.write("  const static int64_t NULLABLE = (1LL << 5);\n");
-  head_file.write("  const static int64_t INFLUENCE_PLAN = (1LL << 6);\n");
-  head_file.write("  const static int64_t NEED_SERIALIZE = (1LL << 7);\n");
-  head_file.write("  const static int64_t QUERY_SENSITIVE = (1LL << 8);\n");
-  head_file.write("  const static int64_t ORACLE_ONLY = (1LL << 9);\n");
-  head_file.write("  const static int64_t WITH_CREATE = (1LL << 10);\n");
-  head_file.write("  const static int64_t WITH_UPGRADE = (1LL << 11);\n");
-  head_file.write("  const static int64_t MYSQL_ONLY = (1LL << 12);\n");
-  head_file.write("};\n");
-  head_file.write("struct ObSysVarFromJson{\n");
-  head_file.write("  ObSysVarClassType id_;\n");
-  head_file.write("  common::ObString name_;\n");
-  head_file.write("  common::ObObjType data_type_;\n");
-  head_file.write("  common::ObString default_value_; // used for init tenant\n");
-  head_file.write("  common::ObString base_value_; // used for session sync\n");
-  head_file.write("  common::ObString min_val_;\n");
-  head_file.write("  common::ObString max_val_;\n");
-  head_file.write("  common::ObString enum_names_;\n");
-  head_file.write("  common::ObString info_;\n");
-  head_file.write("  int64_t flags_;\n");
-  head_file.write("  common::ObString alias_;\n");
-  head_file.write("  common::ObString base_class_;\n");
-  head_file.write("  common::ObString on_check_and_convert_func_;\n");
-  head_file.write("  common::ObString on_update_func_;\n");
-  head_file.write("  common::ObString to_select_obj_func_;\n");
-  head_file.write("  common::ObString to_show_str_func_;\n");
-  head_file.write("  common::ObString get_meta_type_func_;\n");
-  head_file.write("  common::ObString session_special_update_func_;\n");
-  head_file.write("\n");
-  head_file.write("  ObSysVarFromJson():id_(SYS_VAR_INVALID), name_(\"\"), data_type_(common::ObNullType), default_value_(\"\"), base_value_(\"\"), min_val_(\"\"), max_val_(\"\"), enum_names_(\"\"), info_(\"\"), flags_(ObSysVarFlag::NONE), alias_(\"\"), base_class_(\"\"), on_check_and_convert_func_(""), on_update_func_(""), to_select_obj_func_(""), to_show_str_func_(""), get_meta_type_func_(""), session_special_update_func_("") {}\n");
-  head_file.write("};\n");
-  head_file.write("\n");
-  head_file.write("class ObSysVariables\n");
-  head_file.write("{\n");
-  head_file.write("public:\n");
-  head_file.write("  static int64_t get_all_sys_var_count();\n");
-  head_file.write("  static ObSysVarClassType get_sys_var_id(int64_t i);\n");
-  head_file.write("  static common::ObString get_name(int64_t i);\n");
-  head_file.write("  static common::ObObjType get_type(int64_t i);\n");
-  head_file.write("  static common::ObString get_value(int64_t i);\n");
-  head_file.write("  static common::ObString get_base_str_value(int64_t i);\n");
-  head_file.write("  static common::ObString get_min(int64_t i);\n");
-  head_file.write("  static common::ObString get_max(int64_t i);\n");
-  head_file.write("  static common::ObString get_info(int64_t i);\n");
-  head_file.write("  static int64_t get_flags(int64_t i);\n");
-  head_file.write("  static bool need_serialize(int64_t i);\n");
-  head_file.write("  static bool is_oracle_only(int64_t i);\n");
-  head_file.write("  static bool is_mysql_only(int64_t i);\n");
-  head_file.write("  static common::ObString get_alias(int64_t i);\n");
-  head_file.write("  static const common::ObObj &get_default_value(int64_t i);\n")
-  head_file.write("  static const common::ObObj &get_base_value(int64_t i);\n")
-  head_file.write("  static int64_t get_amount();\n");
-  head_file.write("  static int set_value(const char *name, const char * new_value);\n");
-  head_file.write("  static int set_value(const common::ObString &name, const common::ObString &new_value);\n");
-  head_file.write("  static int set_base_value(const char *name, const char * new_value);\n");
-  head_file.write("  static int set_base_value(const common::ObString &name, const common::ObString &new_value);\n");
-  head_file.write("  static int init_default_values();\n");
-  head_file.write("};\n");
-  head_file.write("\n");
-  head_file.write("class ObSysVarsToIdxMap\n");
-  head_file.write("{\n");
-  head_file.write("public:\n");
-  head_file.write("  static int64_t get_store_idx(int64_t var_id);\n");
-  head_file.write("  static bool has_invalid_sys_var_id();\n");
-  head_file.write("};\n");
+  with open(head_file_name,'w') as head_file:
+    head_file.write(file_head_annotation);
+    suffix_idx = head_file_name.find(".h")
+    file_def_str = ("OCEANBASE_" + pdir.replace("/", "_").upper() + "_" +
+                    head_file_name[:suffix_idx].upper() + "_")
+    head_file.write(f"#ifndef {file_def_str}" + "\n");
+    head_file.write(f"#define {file_def_str}" + "\n");
+    head_file.write("#include \"share/system_variable/ob_sys_var_class_type.h\"\n");
+    head_file.write("#include <stdint.h>\n");
+    head_file.write("#include \"common/object/ob_object.h\"\n");
+    head_file.write("namespace oceanbase\n");
+    head_file.write("{\n");
+    head_file.write("namespace share\n");
+    head_file.write("{\n");
+    head_file.write("// ObSysVarFlag的值不可随意增删改, 有任何增删改要同时同步到sql/session/gen_ob_sys_variables.py的flag_value_dict变量中\n");
+    head_file.write("struct ObSysVarFlag\n");
+    head_file.write("{\n");
+    head_file.write("  const static int64_t NONE = 0LL;\n");
+    head_file.write("  const static int64_t GLOBAL_SCOPE = 1LL;\n");
+    head_file.write("  const static int64_t SESSION_SCOPE = (1LL << 1);\n");
+    head_file.write("  const static int64_t READONLY = (1LL << 2);\n");
+    head_file.write("  const static int64_t SESSION_READONLY = (1LL << 3);\n");
+    head_file.write("  const static int64_t INVISIBLE = (1LL << 4);\n");
+    head_file.write("  const static int64_t NULLABLE = (1LL << 5);\n");
+    head_file.write("  const static int64_t INFLUENCE_PLAN = (1LL << 6);\n");
+    head_file.write("  const static int64_t NEED_SERIALIZE = (1LL << 7);\n");
+    head_file.write("  const static int64_t QUERY_SENSITIVE = (1LL << 8);\n");
+    head_file.write("  const static int64_t ORACLE_ONLY = (1LL << 9);\n");
+    head_file.write("  const static int64_t WITH_CREATE = (1LL << 10);\n");
+    head_file.write("  const static int64_t WITH_UPGRADE = (1LL << 11);\n");
+    head_file.write("  const static int64_t MYSQL_ONLY = (1LL << 12);\n");
+    head_file.write("};\n");
+    head_file.write("struct ObSysVarFromJson{\n");
+    head_file.write("  ObSysVarClassType id_;\n");
+    head_file.write("  common::ObString name_;\n");
+    head_file.write("  common::ObObjType data_type_;\n");
+    head_file.write("  common::ObString default_value_; // used for init tenant\n");
+    head_file.write("  common::ObString base_value_; // used for session sync\n");
+    head_file.write("  common::ObString min_val_;\n");
+    head_file.write("  common::ObString max_val_;\n");
+    head_file.write("  common::ObString enum_names_;\n");
+    head_file.write("  common::ObString info_;\n");
+    head_file.write("  int64_t flags_;\n");
+    head_file.write("  common::ObString alias_;\n");
+    head_file.write("  common::ObString base_class_;\n");
+    head_file.write("  common::ObString on_check_and_convert_func_;\n");
+    head_file.write("  common::ObString on_update_func_;\n");
+    head_file.write("  common::ObString to_select_obj_func_;\n");
+    head_file.write("  common::ObString to_show_str_func_;\n");
+    head_file.write("  common::ObString get_meta_type_func_;\n");
+    head_file.write("  common::ObString session_special_update_func_;\n");
+    head_file.write("\n");
+    head_file.write("  ObSysVarFromJson():id_(SYS_VAR_INVALID), name_(\"\"), data_type_(common::ObNullType), default_value_(\"\"), base_value_(\"\"), min_val_(\"\"), max_val_(\"\"), enum_names_(\"\"), info_(\"\"), flags_(ObSysVarFlag::NONE), alias_(\"\"), base_class_(\"\"), on_check_and_convert_func_(""), on_update_func_(""), to_select_obj_func_(""), to_show_str_func_(""), get_meta_type_func_(""), session_special_update_func_("") {}\n");
+    head_file.write("};\n");
+    head_file.write("\n");
+    head_file.write("class ObSysVariables\n");
+    head_file.write("{\n");
+    head_file.write("public:\n");
+    head_file.write("  static int64_t get_all_sys_var_count();\n");
+    head_file.write("  static ObSysVarClassType get_sys_var_id(int64_t i);\n");
+    head_file.write("  static common::ObString get_name(int64_t i);\n");
+    head_file.write("  static common::ObObjType get_type(int64_t i);\n");
+    head_file.write("  static common::ObString get_value(int64_t i);\n");
+    head_file.write("  static common::ObString get_base_str_value(int64_t i);\n");
+    head_file.write("  static common::ObString get_min(int64_t i);\n");
+    head_file.write("  static common::ObString get_max(int64_t i);\n");
+    head_file.write("  static common::ObString get_info(int64_t i);\n");
+    head_file.write("  static int64_t get_flags(int64_t i);\n");
+    head_file.write("  static bool need_serialize(int64_t i);\n");
+    head_file.write("  static bool is_oracle_only(int64_t i);\n");
+    head_file.write("  static bool is_mysql_only(int64_t i);\n");
+    head_file.write("  static common::ObString get_alias(int64_t i);\n");
+    head_file.write("  static const common::ObObj &get_default_value(int64_t i);\n")
+    head_file.write("  static const common::ObObj &get_base_value(int64_t i);\n")
+    head_file.write("  static int64_t get_amount();\n");
+    head_file.write("  static int set_value(const char *name, const char * new_value);\n");
+    head_file.write("  static int set_value(const common::ObString &name, const common::ObString &new_value);\n");
+    head_file.write("  static int set_base_value(const char *name, const char * new_value);\n");
+    head_file.write("  static int set_base_value(const common::ObString &name, const common::ObString &new_value);\n");
+    head_file.write("  static int init_default_values();\n");
+    head_file.write("};\n");
+    head_file.write("\n");
+    head_file.write("class ObSysVarsToIdxMap\n");
+    head_file.write("{\n");
+    head_file.write("public:\n");
+    head_file.write("  static int64_t get_store_idx(int64_t var_id);\n");
+    head_file.write("  static bool has_invalid_sys_var_id();\n");
+    head_file.write("};\n");
 
-  head_file.write("\n");
-  head_file.write("} // end namespace share\n");
-  head_file.write("} // end namespace oceanbase\n");
-  head_file.write("\n");
-  head_file.write("#endif /* " + file_def_str + " */\n");
+    head_file.write("\n");
+    head_file.write("} // end namespace share\n");
+    head_file.write("} // end namespace oceanbase\n");
+    head_file.write("\n");
+    head_file.write(f"#endif /* {file_def_str}" + " */\n");
 
-  head_file.close( )
-  print("Generate " + str(head_file_name) + " successfully!\n");
+  print(f"Generate {str(head_file_name)}" + " successfully!\n");
   return
 
 def make_flags_value(flags):
   value = ""
   flags = flags.split("|")
   for i in range(0, len(flags)):
-    value += ("ObSysVarFlag::" + flag_dict[flags[i].strip().upper()])
+    value += f"ObSysVarFlag::{flag_dict[flags[i].strip().upper()]}"
     if (i != len(flags) - 1):
       value += " | "
   return value
@@ -239,147 +239,157 @@ def make_type_value(type):
   return type_dict[type.strip()]
 
 def make_cpp_file(pdir, cpp_file_name, sorted_list):
-  cpp_file =  open(cpp_file_name,'w')
-  cpp_file.write(file_head_annotation)
-  cpp_file.write("#define USING_LOG_PREFIX SHARE\n")
-  cpp_file.write("#include \"" + pdir + "/" + cpp_file_name.replace(".cpp", ".h") + "\"\n")
-  cpp_file.write("#include \"share/system_variable/ob_system_variable_factory.h\"\n")
-  cpp_file.write("#include \"share/object/ob_obj_cast.h\"\n")
-  cpp_file.write("#include \"common/expression/ob_expr_string_buf.h\"\n")
-  cpp_file.write("#include \"common/expression/ob_expr_string_buf.h\"\n")
-  cpp_file.write("using namespace oceanbase::common;\n");
-  cpp_file.write("\n")
-  cpp_file.write("namespace oceanbase\n");
-  cpp_file.write("{\n");
-  cpp_file.write("namespace share\n");
-  cpp_file.write("{\n");
-  cpp_file.write("static ObSysVarFromJson ObSysVars[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
-  cpp_file.write("static ObObj ObSysVarDefaultValues[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
-  cpp_file.write("static ObArenaAllocator ObSysVarAllocator(ObModIds::OB_COMMON_SYS_VAR_DEFAULT_VALUE);\n")
-  cpp_file.write("static ObObj ObSysVarBaseValues[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
-  cpp_file.write("static ObArenaAllocator ObBaseSysVarAllocator(ObModIds::OB_COMMON_SYS_VAR_DEFAULT_VALUE);\n")
-  cpp_file.write("static int64_t ObSysVarsIdToArrayIdx[ObSysVarFactory::OB_MAX_SYS_VAR_ID];\n")
-  cpp_file.write("// VarsInit中需要判断当前最大的SysVars对应的id，是否大于OB_MAX_SYS_VAR_ID\n")
-  cpp_file.write("// 如果大于OB_MAX_SYS_VAR_ID表示存在无效的SysVarsId\n")
-  cpp_file.write("static bool HasInvalidSysVar = false;\n")
+  with open(cpp_file_name,'w') as cpp_file:
+    cpp_file.write(file_head_annotation)
+    cpp_file.write("#define USING_LOG_PREFIX SHARE\n")
+    cpp_file.write("#include \"" + pdir + "/" + cpp_file_name.replace(".cpp", ".h") + "\"\n")
+    cpp_file.write("#include \"share/system_variable/ob_system_variable_factory.h\"\n")
+    cpp_file.write("#include \"share/object/ob_obj_cast.h\"\n")
+    cpp_file.write("#include \"common/expression/ob_expr_string_buf.h\"\n")
+    cpp_file.write("#include \"common/expression/ob_expr_string_buf.h\"\n")
+    cpp_file.write("using namespace oceanbase::common;\n");
+    cpp_file.write("\n")
+    cpp_file.write("namespace oceanbase\n");
+    cpp_file.write("{\n");
+    cpp_file.write("namespace share\n");
+    cpp_file.write("{\n");
+    cpp_file.write("static ObSysVarFromJson ObSysVars[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
+    cpp_file.write("static ObObj ObSysVarDefaultValues[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
+    cpp_file.write("static ObArenaAllocator ObSysVarAllocator(ObModIds::OB_COMMON_SYS_VAR_DEFAULT_VALUE);\n")
+    cpp_file.write("static ObObj ObSysVarBaseValues[ObSysVarFactory::ALL_SYS_VARS_COUNT];\n")
+    cpp_file.write("static ObArenaAllocator ObBaseSysVarAllocator(ObModIds::OB_COMMON_SYS_VAR_DEFAULT_VALUE);\n")
+    cpp_file.write("static int64_t ObSysVarsIdToArrayIdx[ObSysVarFactory::OB_MAX_SYS_VAR_ID];\n")
+    cpp_file.write("// VarsInit中需要判断当前最大的SysVars对应的id，是否大于OB_MAX_SYS_VAR_ID\n")
+    cpp_file.write("// 如果大于OB_MAX_SYS_VAR_ID表示存在无效的SysVarsId\n")
+    cpp_file.write("static bool HasInvalidSysVar = false;\n")
 
-  cpp_file.write("\n")
-  cpp_file.write("static struct VarsInit{\n")
-  cpp_file.write("  VarsInit(){\n")
+    cpp_file.write("\n")
+    cpp_file.write("static struct VarsInit{\n")
+    cpp_file.write("  VarsInit(){\n")
 
-  var_num = 0
-  cpp_file.write("    // 保存当前系统变量的最大的id\n")
-  cpp_file.write("    int64_t cur_max_var_id = 0;\n")
-  cpp_file.write("    // ObSysVarsIdToArrayIdx数组默认初始值为-1，-1表示无效索引\n")
-  cpp_file.write("    memset(ObSysVarsIdToArrayIdx, -1, sizeof(ObSysVarsIdToArrayIdx));\n")
-  for (name,attributes) in sorted_list:
-    cpp_file.write("    [&] (){\n")
-    for required_attr in required_attrs:
-      if required_attr not in attributes:
-        sys.exit("attribute '" + str(required_attr) + "' is required for item '" + str(name) + "'")
-    for (attribute_key, attribute_value) in attributes.items():
-      if attribute_value == " ":
-        attribute_value = str("")
-      if attribute_key in ignored_attrs:
-        continue
-      elif attribute_key == "id":
-        out = "      ObSysVars[" + str(var_num) + "]." + str(attribute_key) + "_ = SYS_VAR_" + str(name).upper() + " ;\n"
-      elif attribute_key == "flags":
-        out = "      ObSysVars[" + str(var_num) + "]." + str(attribute_key) + "_ = " + make_flags_value(attribute_value) + " ;\n"
-      elif attribute_key == "data_type":
-        out = "      ObSysVars[" + str(var_num) + "]." + str(attribute_key) + "_ = " + make_type_value(attribute_value) + " ;\n"
-      else:
-        out = "      ObSysVars[" + str(var_num) + "]." + str(attribute_key) + "_ = \"" + str(attribute_value) + "\" ;\n"
+    var_num = 0
+    cpp_file.write("    // 保存当前系统变量的最大的id\n")
+    cpp_file.write("    int64_t cur_max_var_id = 0;\n")
+    cpp_file.write("    // ObSysVarsIdToArrayIdx数组默认初始值为-1，-1表示无效索引\n")
+    cpp_file.write("    memset(ObSysVarsIdToArrayIdx, -1, sizeof(ObSysVarsIdToArrayIdx));\n")
+    for (name,attributes) in sorted_list:
+      cpp_file.write("    [&] (){\n")
+      for required_attr in required_attrs:
+        if required_attr not in attributes:
+          sys.exit(
+              f"attribute '{str(required_attr)}' is required for item '{str(name)}'"
+          )
+      for (attribute_key, attribute_value) in attributes.items():
+        if attribute_value == " ":
+          attribute_value = ""
+        if attribute_key in ignored_attrs:
+          continue
+        elif attribute_key == "id":
+          out = (
+              f"      ObSysVars[{str(var_num)}].{str(attribute_key)}_ = SYS_VAR_{str(name).upper()}"
+              + " ;\n")
+        elif attribute_key == "flags":
+          out = (
+              f"      ObSysVars[{str(var_num)}].{str(attribute_key)}_ = {make_flags_value(attribute_value)}"
+              + " ;\n")
+        elif attribute_key == "data_type":
+          out = (
+              f"      ObSysVars[{str(var_num)}].{str(attribute_key)}_ = {make_type_value(attribute_value)}"
+              + " ;\n")
+        else:
+          out = (f"      ObSysVars[{str(var_num)}].{str(attribute_key)}" +
+                 "_ = \"" + str(attribute_value) + "\" ;\n")
+        cpp_file.write(out)
+        if attribute_key == "id":
+          out = "      cur_max_var_id = MAX(cur_max_var_id, "+"static_cast<int64_t>(SYS_VAR_" + str(name).upper()+")"+") ;\n"
+          cpp_file.write(out)
+          out = "      ObSysVarsIdToArrayIdx[" + "SYS_VAR_" + str(name).upper() + "] = " + str(var_num) + " ;\n"
+          cpp_file.write(out)
+      alias = attributes['name']
+      alias_prefix = alias[:3]
+      if alias_prefix == "ob_":
+        alias = alias[3:]
+      alias_upper = alias.upper()
+      out = (f"    ObSysVars[{str(var_num)}" + "].alias_ = \"OB_SV_" +
+             str(alias_upper) + "\" ;\n")
       cpp_file.write(out)
-      if attribute_key == "id":
-        out = "      cur_max_var_id = MAX(cur_max_var_id, "+"static_cast<int64_t>(SYS_VAR_" + str(name).upper()+")"+") ;\n"
-        cpp_file.write(out)
-        out = "      ObSysVarsIdToArrayIdx[" + "SYS_VAR_" + str(name).upper() + "] = " + str(var_num) + " ;\n"
-        cpp_file.write(out)
-    alias = attributes['name']
-    alias_prefix = alias[0:3]
-    if alias_prefix == str("ob_"):
-      alias = alias[3:]
-    alias_upper = alias.upper()
-    out = "    ObSysVars[" + str(var_num) + "].alias_ = \"OB_SV_" + str(alias_upper) + "\" ;\n"
-    cpp_file.write(out)
-    var_num += 1
-    cpp_file.write("    }();\n\n")
+      var_num += 1
+      cpp_file.write("    }();\n\n")
 
-  cpp_file.write("    if (cur_max_var_id >= ObSysVarFactory::OB_MAX_SYS_VAR_ID) { \n")
-  cpp_file.write("      HasInvalidSysVar = true;\n")
-  cpp_file.write("    }\n")
-  cpp_file.write("  }\n")
-  cpp_file.write("}vars_init;\n")
-  cpp_file.write("\n")
-  cpp_file.write("static int64_t var_amount = " + str(var_num) + ";"  + "\n")
-  cpp_file.write("\n")
-  cpp_file.write("int64_t ObSysVariables::get_all_sys_var_count(){ return ObSysVarFactory::ALL_SYS_VARS_COUNT;}\n")
-  cpp_file.write("ObSysVarClassType ObSysVariables::get_sys_var_id(int64_t i){ return ObSysVars[i].id_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_name(int64_t i){ return ObSysVars[i].name_;}\n")
-  cpp_file.write("ObObjType ObSysVariables::get_type(int64_t i){ return ObSysVars[i].data_type_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_value(int64_t i){ return ObSysVars[i].default_value_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_base_str_value(int64_t i){ return ObSysVars[i].base_value_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_min(int64_t i){ return ObSysVars[i].min_val_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_max(int64_t i){ return ObSysVars[i].max_val_;}\n")
-  cpp_file.write("ObString ObSysVariables::get_info(int64_t i){ return ObSysVars[i].info_;}\n")
-  cpp_file.write("int64_t ObSysVariables::get_flags(int64_t i){ return ObSysVars[i].flags_;}\n")
-  cpp_file.write("bool ObSysVariables::need_serialize(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::NEED_SERIALIZE;}\n")
-  cpp_file.write("bool ObSysVariables::is_oracle_only(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::ORACLE_ONLY;}\n")
-  cpp_file.write("bool ObSysVariables::is_mysql_only(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::MYSQL_ONLY;}\n")
-  cpp_file.write("ObString ObSysVariables::get_alias(int64_t i){ return ObSysVars[i].alias_;}\n")
-  cpp_file.write("const ObObj &ObSysVariables::get_default_value(int64_t i){ return ObSysVarDefaultValues[i];}\n")
-  cpp_file.write("const ObObj &ObSysVariables::get_base_value(int64_t i){ return ObSysVarBaseValues[i];}\n")
-  cpp_file.write("int64_t ObSysVariables::get_amount(){ return var_amount;}\n")
-  cpp_file.write("\n")
-  cpp_file.write("int ObSysVariables::set_value(const char *name, const char * new_value)\n")
-  cpp_file.write("{\n")
-  cpp_file.write("  ObString tmp_name(static_cast<int32_t>(strlen(name)), name);\n")
-  cpp_file.write("  ObString tmp_value(static_cast<int32_t>(strlen(new_value)), new_value);\n")
-  cpp_file.write("  return set_value(tmp_name, tmp_value);\n")
-  cpp_file.write("}\n")
-  cpp_file.write("int ObSysVariables::set_value(const common::ObString &name, const common::ObString &new_value)\n")
-  cpp_file.write("{\n")
-  cpp_file.write("  int ret = OB_SUCCESS;\n")
-  cpp_file.write("  bool name_exist = false;\n")
-  cpp_file.write("  for (int64_t i = 0; OB_SUCC(ret) && false == name_exist && i < var_amount; ++i){\n")
-  cpp_file.write("    if (0 == ObSysVars[i].name_.compare(name)) {\n")
-  cpp_file.write("      ObSysVars[i].default_value_.assign_ptr(new_value.ptr(), new_value.length());\n")
-  cpp_file.write("      name_exist = true;\n")
-  cpp_file.write("    }\n")
-  cpp_file.write("  }\n")
-  cpp_file.write("  if (OB_SUCC(ret)) {\n")
-  cpp_file.write("    if (false == name_exist) {\n")
-  cpp_file.write("      ret = OB_ENTRY_NOT_EXIST;\n")
-  cpp_file.write("    }\n")
-  cpp_file.write("  }\n")
-  cpp_file.write("  return ret;\n")
-  cpp_file.write("}\n")
-  cpp_file.write("\n")
-  cpp_file.write("int ObSysVariables::set_base_value(const char *name, const char * new_value)\n")
-  cpp_file.write("{\n")
-  cpp_file.write("  ObString tmp_name(static_cast<int32_t>(strlen(name)), name);\n")
-  cpp_file.write("  ObString tmp_value(static_cast<int32_t>(strlen(new_value)), new_value);\n")
-  cpp_file.write("  return set_base_value(tmp_name, tmp_value);\n")
-  cpp_file.write("}\n")
-  cpp_file.write("int ObSysVariables::set_base_value(const common::ObString &name, const common::ObString &new_value)\n")
-  cpp_file.write("{\n")
-  cpp_file.write("  int ret = OB_SUCCESS;\n")
-  cpp_file.write("  bool name_exist = false;\n")
-  cpp_file.write("  for (int64_t i = 0; OB_SUCC(ret) && false == name_exist && i < var_amount; ++i){\n")
-  cpp_file.write("    if (0 == ObSysVars[i].name_.compare(name)) {\n")
-  cpp_file.write("      ObSysVars[i].base_value_.assign_ptr(new_value.ptr(), new_value.length());\n")
-  cpp_file.write("      name_exist = true;\n")
-  cpp_file.write("    }\n")
-  cpp_file.write("  }\n")
-  cpp_file.write("  if (OB_SUCC(ret)) {\n")
-  cpp_file.write("    if (false == name_exist) {\n")
-  cpp_file.write("      ret = OB_ENTRY_NOT_EXIST;\n")
-  cpp_file.write("    }\n")
-  cpp_file.write("  }\n")
-  cpp_file.write("  return ret;\n")
-  cpp_file.write("}\n")
-  cpp_file.write("""
+    cpp_file.write("    if (cur_max_var_id >= ObSysVarFactory::OB_MAX_SYS_VAR_ID) { \n")
+    cpp_file.write("      HasInvalidSysVar = true;\n")
+    cpp_file.write("    }\n")
+    cpp_file.write("  }\n")
+    cpp_file.write("}vars_init;\n")
+    cpp_file.write("\n")
+    cpp_file.write(f"static int64_t var_amount = {str(var_num)};" + "\n")
+    cpp_file.write("\n")
+    cpp_file.write("int64_t ObSysVariables::get_all_sys_var_count(){ return ObSysVarFactory::ALL_SYS_VARS_COUNT;}\n")
+    cpp_file.write("ObSysVarClassType ObSysVariables::get_sys_var_id(int64_t i){ return ObSysVars[i].id_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_name(int64_t i){ return ObSysVars[i].name_;}\n")
+    cpp_file.write("ObObjType ObSysVariables::get_type(int64_t i){ return ObSysVars[i].data_type_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_value(int64_t i){ return ObSysVars[i].default_value_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_base_str_value(int64_t i){ return ObSysVars[i].base_value_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_min(int64_t i){ return ObSysVars[i].min_val_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_max(int64_t i){ return ObSysVars[i].max_val_;}\n")
+    cpp_file.write("ObString ObSysVariables::get_info(int64_t i){ return ObSysVars[i].info_;}\n")
+    cpp_file.write("int64_t ObSysVariables::get_flags(int64_t i){ return ObSysVars[i].flags_;}\n")
+    cpp_file.write("bool ObSysVariables::need_serialize(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::NEED_SERIALIZE;}\n")
+    cpp_file.write("bool ObSysVariables::is_oracle_only(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::ORACLE_ONLY;}\n")
+    cpp_file.write("bool ObSysVariables::is_mysql_only(int64_t i){ return ObSysVars[i].flags_ & ObSysVarFlag::MYSQL_ONLY;}\n")
+    cpp_file.write("ObString ObSysVariables::get_alias(int64_t i){ return ObSysVars[i].alias_;}\n")
+    cpp_file.write("const ObObj &ObSysVariables::get_default_value(int64_t i){ return ObSysVarDefaultValues[i];}\n")
+    cpp_file.write("const ObObj &ObSysVariables::get_base_value(int64_t i){ return ObSysVarBaseValues[i];}\n")
+    cpp_file.write("int64_t ObSysVariables::get_amount(){ return var_amount;}\n")
+    cpp_file.write("\n")
+    cpp_file.write("int ObSysVariables::set_value(const char *name, const char * new_value)\n")
+    cpp_file.write("{\n")
+    cpp_file.write("  ObString tmp_name(static_cast<int32_t>(strlen(name)), name);\n")
+    cpp_file.write("  ObString tmp_value(static_cast<int32_t>(strlen(new_value)), new_value);\n")
+    cpp_file.write("  return set_value(tmp_name, tmp_value);\n")
+    cpp_file.write("}\n")
+    cpp_file.write("int ObSysVariables::set_value(const common::ObString &name, const common::ObString &new_value)\n")
+    cpp_file.write("{\n")
+    cpp_file.write("  int ret = OB_SUCCESS;\n")
+    cpp_file.write("  bool name_exist = false;\n")
+    cpp_file.write("  for (int64_t i = 0; OB_SUCC(ret) && false == name_exist && i < var_amount; ++i){\n")
+    cpp_file.write("    if (0 == ObSysVars[i].name_.compare(name)) {\n")
+    cpp_file.write("      ObSysVars[i].default_value_.assign_ptr(new_value.ptr(), new_value.length());\n")
+    cpp_file.write("      name_exist = true;\n")
+    cpp_file.write("    }\n")
+    cpp_file.write("  }\n")
+    cpp_file.write("  if (OB_SUCC(ret)) {\n")
+    cpp_file.write("    if (false == name_exist) {\n")
+    cpp_file.write("      ret = OB_ENTRY_NOT_EXIST;\n")
+    cpp_file.write("    }\n")
+    cpp_file.write("  }\n")
+    cpp_file.write("  return ret;\n")
+    cpp_file.write("}\n")
+    cpp_file.write("\n")
+    cpp_file.write("int ObSysVariables::set_base_value(const char *name, const char * new_value)\n")
+    cpp_file.write("{\n")
+    cpp_file.write("  ObString tmp_name(static_cast<int32_t>(strlen(name)), name);\n")
+    cpp_file.write("  ObString tmp_value(static_cast<int32_t>(strlen(new_value)), new_value);\n")
+    cpp_file.write("  return set_base_value(tmp_name, tmp_value);\n")
+    cpp_file.write("}\n")
+    cpp_file.write("int ObSysVariables::set_base_value(const common::ObString &name, const common::ObString &new_value)\n")
+    cpp_file.write("{\n")
+    cpp_file.write("  int ret = OB_SUCCESS;\n")
+    cpp_file.write("  bool name_exist = false;\n")
+    cpp_file.write("  for (int64_t i = 0; OB_SUCC(ret) && false == name_exist && i < var_amount; ++i){\n")
+    cpp_file.write("    if (0 == ObSysVars[i].name_.compare(name)) {\n")
+    cpp_file.write("      ObSysVars[i].base_value_.assign_ptr(new_value.ptr(), new_value.length());\n")
+    cpp_file.write("      name_exist = true;\n")
+    cpp_file.write("    }\n")
+    cpp_file.write("  }\n")
+    cpp_file.write("  if (OB_SUCC(ret)) {\n")
+    cpp_file.write("    if (false == name_exist) {\n")
+    cpp_file.write("      ret = OB_ENTRY_NOT_EXIST;\n")
+    cpp_file.write("    }\n")
+    cpp_file.write("  }\n")
+    cpp_file.write("  return ret;\n")
+    cpp_file.write("}\n")
+    cpp_file.write("""
 int ObSysVariables::init_default_values()
 {
   int ret = OB_SUCCESS;
@@ -436,28 +446,29 @@ int ObSysVariables::init_default_values()
   return ret;
 }
 """)
-  cpp_file.write("\n")
-  cpp_file.write("int64_t ObSysVarsToIdxMap::get_store_idx(int64_t var_id){ return ObSysVarsIdToArrayIdx[var_id];}\n")
-  cpp_file.write("bool ObSysVarsToIdxMap::has_invalid_sys_var_id(){ return HasInvalidSysVar;}\n")
-  cpp_file.write("\n")
-  cpp_file.write("} // end namespace share\n")
-  cpp_file.write("} // end namespace oceanbase\n")
-  cpp_file.write("\n")
+    cpp_file.write("\n")
+    cpp_file.write("int64_t ObSysVarsToIdxMap::get_store_idx(int64_t var_id){ return ObSysVarsIdToArrayIdx[var_id];}\n")
+    cpp_file.write("bool ObSysVarsToIdxMap::has_invalid_sys_var_id(){ return HasInvalidSysVar;}\n")
+    cpp_file.write("\n")
+    cpp_file.write("} // end namespace share\n")
+    cpp_file.write("} // end namespace oceanbase\n")
+    cpp_file.write("\n")
 
-  cpp_file.close( )
-  print("Generate " + str(cpp_file_name) + " successfully! Including " + str(var_num) + " system variables. \n")
+  print(
+      f"Generate {str(cpp_file_name)} successfully! Including {str(var_num)}" +
+      " system variables. \n")
   return
 
 def write_sys_var_class_types(wfile, sorted_list):
   wfile.write("enum ObSysVarClassType\n{\n")
   wfile.write("  SYS_VAR_INVALID = -1,\n")
   for (name, attributes) in sorted_list:
-    wfile.write("  SYS_VAR_" + str(name).upper() + " = " + str(attributes['id']) + ",\n")
+    wfile.write(f"  SYS_VAR_{str(name).upper()} = " + str(attributes['id']) +
+                ",\n")
   wfile.write("};\n")
 
 def write_sys_var_classes(wfile, sorted_list):
-  idx = 0
-  for (name, attributes) in sorted_list:
+  for idx, (name, attributes) in enumerate(sorted_list):
     write_sys_var_class(\
         wfile, idx, str(name), \
         attributes["data_type"], \
@@ -468,7 +479,6 @@ def write_sys_var_classes(wfile, sorted_list):
         attributes["to_show_str_func"] if "to_show_str_func" in attributes.keys() else None, \
         attributes["get_meta_type_func"] if "get_meta_type_func" in attributes.keys() else None, \
         attributes["session_special_update_func"] if "session_special_update_func" in attributes.keys() else None)
-    idx += 1
 
 def write_sys_var_fac_class(wfile, sorted_list):
   mysql_sys_var_names_count = 0
@@ -497,10 +507,10 @@ public:
   static const common::ObString get_sys_var_name_by_id(ObSysVarClassType sys_var_id);
 
   const static int64_t MYSQL_SYS_VARS_COUNT = """)
-  wfile.write(str(mysql_sys_var_names_count) + ";")
+  wfile.write(f"{str(mysql_sys_var_names_count)};")
   wfile.write("""
   const static int64_t OB_SYS_VARS_COUNT = """)
-  wfile.write(str(ob_sys_var_names_count) + ";")
+  wfile.write(f"{str(ob_sys_var_names_count)};")
   wfile.write("""
   const static int64_t ALL_SYS_VARS_COUNT = MYSQL_SYS_VARS_COUNT + OB_SYS_VARS_COUNT;
   const static int64_t INVALID_MAX_READ_STALE_TIME = -1;
@@ -509,7 +519,7 @@ public:
   // 表示当前OB能够使用的sys var id的最大值，正常情况下，不需要申请大于OB_MAX_SYS_VAR_ID的sys var id，
   // 如果需要申请大于OB_MAX_SYS_VAR_ID的sys var id，需要先调整ob_max_sys_var_id的值
   const static int32_t OB_MAX_SYS_VAR_ID = """)
-  wfile.write(str(ob_max_sys_var_id) + ";")
+  wfile.write(f"{str(ob_max_sys_var_id)};")
   wfile.write("""
 
 private:

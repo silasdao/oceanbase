@@ -10,13 +10,8 @@ with open('uni_gbk_tab', 'r') as fd:
 
 with open('uni_gbk_array', 'w') as fd:
   line_str = ''
-  count = 0
-  for gbk_data in gbk_col:
-    if (gbk_data == 0):
-      line_str += '     0,'
-    else:
-      line_str += '0x' + gbk_data + ','
-    count+=1
+  for count, gbk_data in enumerate(gbk_col, start=1):
+    line_str += '     0,' if (gbk_data == 0) else f'0x{gbk_data},'
     if (count % 8 == 0):
       line_str += '\n'
       fd.write(line_str)

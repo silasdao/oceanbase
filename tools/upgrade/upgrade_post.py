@@ -2808,13 +2808,10 @@ class SplitError(Exception):
     return repr(self.value)
 
 def random_str(rand_str_len = 8):
-  str = ''
   chars = 'AaBbCcDdEeFfGgHhIiJjKkLlMmNnOoPpQqRrSsTtUuVvWwXxYyZz0123456789'
   length = len(chars) - 1
   random = Random()
-  for i in range(rand_str_len):
-    str += chars[random.randint(0, length)]
-  return str
+  return ''.join(chars[random.randint(0, length)] for _ in range(rand_str_len))
 
 def split_py_files(sub_files_dir):
   char_enter = '\n'
@@ -2873,5 +2870,5 @@ if __name__ == '__main__':
   sub_files_dir = cur_file_short_name + sub_files_dir_suffix
   sub_files_short_dir = cur_file_real_name + sub_files_dir_suffix
   split_py_files(sub_files_dir)
-  exec('from ' + sub_files_short_dir + '.do_upgrade_post import do_upgrade_by_argv')
+  exec(f'from {sub_files_short_dir}.do_upgrade_post import do_upgrade_by_argv')
   do_upgrade_by_argv(sys.argv[1:])

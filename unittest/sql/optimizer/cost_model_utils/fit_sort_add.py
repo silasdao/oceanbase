@@ -44,8 +44,7 @@ def array_model_form(args):
 
     ELEM_PER_PAGE = 1024
     extend_cnt = math.ceil(math.log(float(Nelem)/ELEM_PER_PAGE, 2))
-    if extend_cnt < 0:
-        extend_cnt = 0
+    extend_cnt = max(extend_cnt, 0)
     copy_cnt = ELEM_PER_PAGE * (math.pow(2, extend_cnt) - 1)
 
     total_cost = Telem_ence * Nelem
@@ -72,10 +71,7 @@ def round_wasted_spave(rsize, psize):
 def get_miss_prob(Nrow, Ncol, Nord, Turn):
     total_size = Nrow * get_row_size(Nord, Ncol)
     TLBcovered = Turn
-    if TLBcovered >= 0.9 * total_size:
-        hit = 0.9
-    else:
-        hit = TLBcovered / total_size
+    hit = 0.9 if TLBcovered >= 0.9 * total_size else TLBcovered / total_size
     return 1 - hit
 
 
@@ -136,22 +132,24 @@ def sort_model_arr(arg_sets,
                    Turn,
                    # Tmiss_K2
                    ):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(sort_model_form(single_arg_set,
-                                   # Tstartup,
-                                   # Trowstore_once,
-                                   # Trowstore_col,
-                                   # Tarray_once,
-                                   # Tarray_elem_copy,
-                                   # Tordercol,
-                                   # Treserve_cell,
-                                   Tcompare,
-                                   # Trow_once,
-                                   Tmiss_K1,
-                                   Turn,
-                                   # Tmiss_K2
-                                   ))
+    res = [
+        sort_model_form(
+            single_arg_set,
+            # Tstartup,
+            # Trowstore_once,
+            # Trowstore_col,
+            # Tarray_once,
+            # Tarray_elem_copy,
+            # Tordercol,
+            # Treserve_cell,
+            Tcompare,
+            # Trow_once,
+            Tmiss_K1,
+            Turn,
+            # Tmiss_K2
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 sort_model = Model(sort_model_arr)
@@ -180,10 +178,7 @@ sort_model.set_param_hint("Turn", min=2097152.0, max=2097153.0)
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

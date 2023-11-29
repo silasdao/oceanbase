@@ -9,24 +9,21 @@ import logging
 
 def results_to_str(desc, results):
   ret_str = ''
-  max_width_list = []
-  for col_desc in desc:
-    max_width_list.append(len(str(col_desc[0])))
+  max_width_list = [len(str(col_desc[0])) for col_desc in desc]
   col_count = len(max_width_list)
   for result in results:
     if col_count != len(result):
       raise MyError('column count is not equal, desc column count: {0}, data column count: {1}'.format(col_count, len(result)))
     for i in range(0, col_count):
       result_col_width = len(str(result[i]))
-      if max_width_list[i] < result_col_width:
-        max_width_list[i] = result_col_width
+      max_width_list[i] = max(max_width_list[i], result_col_width)
   # 打印列名
   for i in range(0, col_count):
     if i > 0:
       ret_str += '    ' # 空四格
     ret_str += str(desc[i][0])
     # 补足空白
-    for j in range(0, max_width_list[i] - len(str(desc[i][0]))):
+    for _ in range(0, max_width_list[i] - len(str(desc[i][0]))):
       ret_str += ' '
   # 打印数据
   for result in results:
@@ -36,7 +33,7 @@ def results_to_str(desc, results):
         ret_str += '    ' # 空四格
       ret_str += str(result[i])
       # 补足空白
-      for j in range(0, max_width_list[i] - len(str(result[i]))):
+      for _ in range(0, max_width_list[i] - len(str(result[i]))):
         ret_str += ' '
   return ret_str
 

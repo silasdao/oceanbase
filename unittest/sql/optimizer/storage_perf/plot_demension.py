@@ -13,10 +13,7 @@ import getopt
 
 def extract_int_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(int(float(item)))
-    return line_info
+    return [int(float(item)) for item in splited]
 
 def case_cmp(a,b,c):
     if a[c] < b[c] :

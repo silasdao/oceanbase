@@ -9,7 +9,7 @@ origin_file = sys.argv[1]
 tmp_file = 'pointer.tmp'
 
 ## copy file
-os.system('cp ' + origin_file + ' ' + tmp_file)
+os.system(f'cp {origin_file} {tmp_file}')
 
 ## open file
 origin_rw = open(origin_file, 'r+')

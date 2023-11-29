@@ -15,9 +15,8 @@ def remove_schema():
 
 def write_schema(s):
     global schema_file
-    of = open(schema_file, 'w')
-    of.write(s)
-    of.close()
+    with open(schema_file, 'w') as of:
+        of.write(s)
 
 
 def make_seq(t, cnt):
@@ -61,9 +60,8 @@ cmd_form[6] = schema_file
 
 
 def make_headed_seq(head, arr):
-    a = [head] + arr[0:arr.index(head)] + arr[arr.index(head) + 1:]
-    b = [types_to_test[i] for i in a]
-    return b
+    a = [head] + arr[:arr.index(head)] + arr[arr.index(head) + 1:]
+    return [types_to_test[i] for i in a]
 
 
 for t in keys:

@@ -39,16 +39,18 @@ def get_model_arr(arg_sets,
                   Tcorrection2,
                   # Tlog3
                   ):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(get_model_form(single_arg_set,
-                                  # Tstartup,
-                                  Tper_row,
-                                  Tper_col,
-                                  Tcorrection1,
-                                  Tcorrection2,
-                                  # Tlog3
-                                  ))
+    res = [
+        get_model_form(
+            single_arg_set,
+            # Tstartup,
+            Tper_row,
+            Tper_col,
+            Tcorrection1,
+            Tcorrection2,
+            # Tlog3
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 get_model = Model(get_model_arr)
@@ -62,10 +64,7 @@ get_model.set_param_hint("Tcorrection2", min=0.0)
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

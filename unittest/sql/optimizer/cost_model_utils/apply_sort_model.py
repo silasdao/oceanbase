@@ -31,8 +31,7 @@ def array_model_form(args):
 
     ELEM_PER_PAGE = 1024
     extend_cnt = math.ceil(math.log(float(Nelem)/ELEM_PER_PAGE, 2))
-    if extend_cnt < 0:
-        extend_cnt = 0
+    extend_cnt = max(extend_cnt, 0)
     copy_cnt = ELEM_PER_PAGE * (math.pow(2, extend_cnt) - 1)
 
     total_cost = Telem_ence * Nelem
@@ -52,10 +51,7 @@ def get_row_size(reserve, col):
 def get_miss_prob(Nrow, Ncol, Nord, Turn):
     total_size = Nrow * get_row_size(Nord, Ncol)
     TLBcovered = Turn
-    if TLBcovered >= 0.9 * total_size:
-        hit = 0.9
-    else:
-        hit = TLBcovered / total_size
+    hit = 0.9 if TLBcovered >= 0.9 * total_size else TLBcovered / total_size
     return 1 - hit
 
 
@@ -153,10 +149,7 @@ def sort_model_form(args,
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 # sys.argv.extend('-i sort.prep.double -o sort.fit.double -m sort.model.double'.split())

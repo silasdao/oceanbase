@@ -35,9 +35,7 @@ def scan_io_model_form(args,
 
     io_cost = Nrow * Tper_row_io_wait * Nsize_factor
     io_cost -= Nrow * Ncol * Tper_row_pipline_factor
-    if io_cost < 0:
-        io_cost = 0
-
+    io_cost = max(io_cost, 0)
     total_cost += io_cost
     return total_cost
 
@@ -50,17 +48,19 @@ def scan_io_model_arr(arg_sets,
                       Tper_row_io_wait,
                       Tper_row_pipline_factor
                       ):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(scan_io_model_form(single_arg_set,
-                                      # Tstartup,
-                                      # Trow_once,
-                                      Tper_col,
-                                      Tper_row,
-                                      # Tio_col_desc,
-                                      Tper_row_io_wait,
-                                      Tper_row_pipline_factor
-                                      ))
+    res = [
+        scan_io_model_form(
+            single_arg_set,
+            # Tstartup,
+            # Trow_once,
+            Tper_col,
+            Tper_row,
+            # Tio_col_desc,
+            Tper_row_io_wait,
+            Tper_row_pipline_factor,
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 scan_io_model = Model(scan_io_model_arr)
@@ -74,10 +74,7 @@ scan_io_model.set_param_hint("Tper_row_pipline_factor", min=0.0, max=0.1)
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

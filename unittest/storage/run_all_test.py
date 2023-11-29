@@ -70,7 +70,7 @@ quick_list = {
 
 
 log_dir = os.path.dirname(os.getcwd())
-log_file = "%s/run_all_test.log" % log_dir
+log_file = f"{log_dir}/run_all_test.log"
 
 
 def retrieve_ut_executables(test_list):
@@ -78,12 +78,12 @@ def retrieve_ut_executables(test_list):
   exec_list = []
   for f in test_list:
     found = False
-    for l in open(f + 'Makefile.am'):
+    for l in open(f'{f}Makefile.am'):
       if found:
         s = l.strip()
         b_flag = False
         if s[-1] == '\\':
-          s = s[0:-1]
+          s = s[:-1]
         else:
           b_flag = True
         exec_list += [(f, name) for name in s.split()]
@@ -93,7 +93,7 @@ def retrieve_ut_executables(test_list):
         s = l.strip()
         s = s[s.index('=')+1:].strip()
         if s[-1] == '\\':
-          s = s[0:-1]
+          s = s[:-1]
           found = True
         exec_list += [(f, name) for name in s.split()]
   return exec_list

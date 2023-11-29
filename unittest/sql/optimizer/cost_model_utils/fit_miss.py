@@ -27,10 +27,7 @@ def round_wasted_spave(rsize, psize):
 def get_miss_prob(Nrow, Ncol, Turn):
     total_size = Nrow * get_row_size(Ncol)
     TLBcovered = Turn
-    if TLBcovered >= 0.9 * total_size:
-        hit = 0.9
-    else:
-        hit = TLBcovered / total_size
+    hit = 0.9 if TLBcovered >= 0.9 * total_size else TLBcovered / total_size
     return 1 - hit
 
 def sort_model_form(args,
@@ -52,12 +49,14 @@ def sort_model_arr(arg_sets,
                    Tmiss,
                    Turn,
                    ):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(sort_model_form(single_arg_set,
-                                   Tmiss,
-                                   Turn,
-                                   ))
+    res = [
+        sort_model_form(
+            single_arg_set,
+            Tmiss,
+            Turn,
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 sort_model = Model(sort_model_arr)
@@ -68,10 +67,7 @@ sort_model.set_param_hint("Turn", min=2097152.0, max=2097153.0)
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 if __name__ == '__main__':

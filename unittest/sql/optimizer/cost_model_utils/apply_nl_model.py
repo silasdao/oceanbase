@@ -40,10 +40,7 @@ def nl_model_form(args,
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 file_name = "get_total.data.prep"

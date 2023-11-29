@@ -91,25 +91,25 @@ def hash_model_arr(arg_sets,
                    #Tequal_cond,
                    #Tfilter_cond,
                    Tjoin_row):
-    res = []
-    for single_arg_set in arg_sets:
-        res.append(hash_model_form(single_arg_set,
-                                   Tstart_up,
-                                   Tbuild_htable,
-                                   Tright_row_once,
-                                   Tconvert_tuple,
-                                   #Tequal_cond,
-                                   #Tfilter_cond,
-                                   Tjoin_row))
+    res = [
+        hash_model_form(
+            single_arg_set,
+            Tstart_up,
+            Tbuild_htable,
+            Tright_row_once,
+            Tconvert_tuple,
+            # Tequal_cond,
+            # Tfilter_cond,
+            Tjoin_row,
+        )
+        for single_arg_set in arg_sets
+    ]
     return np.array(res)
 
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 hash_model = Model(hash_model_arr)
 hash_model.set_param_hint("Tstart_up", min=0.0)

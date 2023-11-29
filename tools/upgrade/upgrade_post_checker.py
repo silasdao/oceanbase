@@ -26,10 +26,9 @@ def check_data_version(cur, query_cur, timeout):
     logging.warn('result cnt not match')
     raise e
   tenant_count = len(results)
-  tenant_ids_str = ''
-  for index, row in enumerate(results):
-    tenant_ids_str += """{0}{1}""".format((',' if index > 0 else ''), row[0])
-
+  tenant_ids_str = ''.join(
+      """{0}{1}""".format((',' if index > 0 else ''), row[0])
+      for index, row in enumerate(results))
   # get server cnt
   sql = "select count(*) from oceanbase.__all_server";
   (desc, results) = query_cur.exec_query(sql)
@@ -39,7 +38,7 @@ def check_data_version(cur, query_cur, timeout):
   server_count = results[0][0]
 
   # check compatible sync
-  parameter_count = int(server_count) * int(tenant_count)
+  parameter_count = int(server_count) * tenant_count
   current_data_version = actions.get_current_data_version()
   sql = """select count(*) as cnt from oceanbase.__all_virtual_tenant_parameter_info where name = 'compatible' and value = '{0}' and tenant_id in ({1})""".format(current_data_version, tenant_ids_str)
   times = (timeout if timeout > 0 else 60) / 5

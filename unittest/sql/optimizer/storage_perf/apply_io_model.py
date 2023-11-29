@@ -26,19 +26,13 @@ def io_model_form(args,
     io_cost = Nrow * Tio_row
     # io_cost -= Ncol * Tio_col_desc
     io_cost -= Nrow * Ncol * Tio_row_col_desc
-    if io_cost < 0:
-        io_cost = 0
-
-    total_cost = io_cost
-    return total_cost
+    io_cost = max(io_cost, 0)
+    return io_cost
 
 
 def extract_info_from_line(line):
     splited = line.split(",")
-    line_info = []
-    for item in splited:
-        line_info.append(float(item))
-    return line_info
+    return [float(item) for item in splited]
 
 
 file_name = "get_total.data.prep"

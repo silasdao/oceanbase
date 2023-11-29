@@ -54,10 +54,7 @@ def get_connect():
   return mysql.connector.connect(host = g_config.host, port = g_config.port, user = g_config.username, password = g_config.password)
 
 def get_real_db_id(tenant_id, db_id):
-  if db_id == 1:
-    return tenant_id << 40 | db_id
-  else:
-    return db_id
+  return tenant_id << 40 | db_id if db_id == 1 else db_id
 
 def get_args(args):
   parser = argparse.ArgumentParser(add_help = False)

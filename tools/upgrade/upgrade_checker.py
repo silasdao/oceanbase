@@ -128,7 +128,7 @@ class Option:
     self.__is_with_param = is_with_param
     self.__is_local_opt = is_local_opt
     self.__has_value = False
-    if None != default_value:
+    if default_value != None:
       self.set_value(default_value)
   def is_with_param(self):
     return self.__is_with_param
@@ -146,7 +146,8 @@ class Option:
   def is_local_opt(self):
     return self.__is_local_opt
   def is_valid(self):
-    return None != self.__short_name and None != self.__long_name and True == self.__has_value and None != self.__value
+    return (self.__short_name != None and self.__long_name != None
+            and self.__has_value == True and self.__value != None)
 
 g_opts =\
 [\
@@ -188,7 +189,7 @@ def check_db_client_opts():
 def parse_option(opt_name, opt_val):
   global g_opts
   for opt in g_opts:
-    if opt_name in (('-' + opt.get_short_name()), ('--' + opt.get_long_name())):
+    if opt_name in (f'-{opt.get_short_name()}', f'--{opt.get_long_name()}'):
       opt.set_value(opt_val)
 
 def parse_options(argv):
@@ -197,12 +198,12 @@ def parse_options(argv):
   long_opt_list = []
   for opt in g_opts:
     if opt.is_with_param():
-      short_opt_str += opt.get_short_name() + ':'
+      short_opt_str += f'{opt.get_short_name()}:'
     else:
       short_opt_str += opt.get_short_name()
   for opt in g_opts:
     if opt.is_with_param():
-      long_opt_list.append(opt.get_long_name() + '=')
+      long_opt_list.append(f'{opt.get_long_name()}=')
     else:
       long_opt_list.append(opt.get_long_name())
   (opts, args) = getopt.getopt(argv, short_opt_str, long_opt_list)
@@ -223,53 +224,52 @@ def deal_with_local_opts():
   global g_opts
   if has_no_local_opts():
     raise MyError('no local options, can not deal with local options')
-  else:
-    for opt in g_opts:
-      if opt.is_local_opt() and opt.has_value():
-        deal_with_local_opt(opt)
-        # 只处理一个
-        return
+  for opt in g_opts:
+    if opt.is_local_opt() and opt.has_value():
+      deal_with_local_opt(opt)
+      # 只处理一个
+      return
 
 def get_opt_host():
   global g_opts
   for opt in g_opts:
-    if 'host' == opt.get_long_name():
+    if opt.get_long_name() == 'host':
       return opt.get_value()
 
 def get_opt_port():
   global g_opts
   for opt in g_opts:
-    if 'port' == opt.get_long_name():
+    if opt.get_long_name() == 'port':
       return opt.get_value()
 
 def get_opt_user():
   global g_opts
   for opt in g_opts:
-    if 'user' == opt.get_long_name():
+    if opt.get_long_name() == 'user':
       return opt.get_value()
 
 def get_opt_password():
   global g_opts
   for opt in g_opts:
-    if 'password' == opt.get_long_name():
+    if opt.get_long_name() == 'password':
       return opt.get_value()
 
 def get_opt_timeout():
   global g_opts
   for opt in g_opts:
-    if 'timeout' == opt.get_long_name():
+    if opt.get_long_name() == 'timeout':
       return opt.get_value()
 
 def get_opt_module():
   global g_opts
   for opt in g_opts:
-    if 'module' == opt.get_long_name():
+    if opt.get_long_name() == 'module':
       return opt.get_value()
 
 def get_opt_log_file():
   global g_opts
   for opt in g_opts:
-    if 'log-file' == opt.get_long_name():
+    if opt.get_long_name() == 'log-file':
       return opt.get_value()
 #### ---------------end----------------------
 
@@ -311,8 +311,7 @@ def get_version(version_str):
     logging.exception("""version:{0} is invalid""".format(version_str))
     raise e
 
-  version = (major << 32) | (minor << 16) | (major_patch << 8) | (minor_patch)
-  return version
+  return (major << 32) | (minor << 16) | (major_patch << 8) | (minor_patch)
 
 #### START ####
 # 1. 检查前置版本
@@ -413,7 +412,7 @@ def check_tenant_status(query_cur):
   (desc, results) = query_cur.exec_query("""select count(*) as count from DBA_OB_TENANTS where status != 'NORMAL'""")
   if len(results) != 1 or len(results[0]) != 1:
     fail_list.append('results len not match')
-  elif 0 != results[0][0]:
+  elif results[0][0] != 0:
     fail_list.append('has abnormal tenant, should stop')
   else:
     logging.info('check tenant status success')
@@ -423,7 +422,7 @@ def check_tenant_status(query_cur):
   (desc, results) = query_cur.exec_query("""select count(*) as count from oceanbase.__all_virtual_tenant_info where tenant_role != 'PRIMARY' and tenant_role != 'STANDBY'""")
   if len(results) != 1 or len(results[0]) != 1:
     fail_list.append('results len not match')
-  elif 0 != results[0][0]:
+  elif results[0][0] != 0:
     fail_list.append('has abnormal tenant info, should stop')
   else:
     logging.info('check tenant info success')
@@ -438,20 +437,15 @@ def check_restore_job_exist(query_cur):
   logging.info('check restore job success')
 
 def check_is_primary_zone_distributed(primary_zone_str):
-  semicolon_pos = len(primary_zone_str)
-  for i in range(len(primary_zone_str)):
-    if primary_zone_str[i] == ';':
-      semicolon_pos = i
-      break
-  comma_pos = len(primary_zone_str)
-  for j in range(len(primary_zone_str)):
-    if primary_zone_str[j] == ',':
-      comma_pos = j
-      break
-  if comma_pos < semicolon_pos:
-    return True
-  else:
-    return False
+  semicolon_pos = next(
+      (i for i in range(len(primary_zone_str)) if primary_zone_str[i] == ';'),
+      len(primary_zone_str),
+  )
+  comma_pos = next(
+      (j for j in range(len(primary_zone_str)) if primary_zone_str[j] == ','),
+      len(primary_zone_str),
+  )
+  return comma_pos < semicolon_pos
 
 # 7. 升级前需要primary zone只有一个
 def check_tenant_primary_zone(query_cur):
@@ -479,7 +473,7 @@ def modify_server_permanent_offline_time(cur):
 # 9. 检查是否有DDL任务在执行
 def check_ddl_task_execute(query_cur):
   (desc, results) = query_cur.exec_query("""select count(1) from __all_virtual_ddl_task_status""")
-  if 0 != results[0][0]:
+  if results[0][0] != 0:
     fail_list.append("There are DDL task in progress")
   logging.info('check ddl task execut status success')
 
@@ -592,9 +586,10 @@ def check_not_supported_tenant_name(query_cur):
 
 # last check of do_check, make sure no function execute after check_fail_list
 def check_fail_list():
-  if len(fail_list) != 0 :
-     error_msg ="upgrade checker failed with " + str(len(fail_list)) + " reasons: " + ", ".join(['['+x+"] " for x in fail_list])
-     raise MyError(error_msg)
+  if len(fail_list) != 0:
+    error_msg = (f"upgrade checker failed with {len(fail_list)} reasons: " +
+                 ", ".join([f'[{x}] ' for x in fail_list]))
+    raise MyError(error_msg)
 
 def set_query_timeout(query_cur, timeout):
   if timeout != 0:

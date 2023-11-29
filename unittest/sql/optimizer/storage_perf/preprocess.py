@@ -147,9 +147,7 @@ for line in origin_file:
     if i == 0:
         avg_strs = []
         avgs = []
-        column_nums = []
-        for n in xrange(column_count):
-            column_nums.append([])
+        column_nums = [[] for _ in xrange(column_count)]
         if scan_io:
             column_nums.append([])
     for n in xrange(column_count):
@@ -164,10 +162,11 @@ for line in origin_file:
         if scan_io:
             avgs.append(np.mean(column_nums[column_count]))
         avg_strs = [str(a) for a in avgs]
-        real_avg_strs = []
-        for cid in xrange(len(avg_strs)):
-            if cid in out_columns:
-                real_avg_strs.append(avg_strs[cid])
+        real_avg_strs = [
+            avg_strs[cid]
+            for cid in xrange(len(avg_strs))
+            if cid in out_columns
+        ]
         out_file.write(",".join(real_avg_strs) + "\n")
     i = (i + 1) % time_per_case
 

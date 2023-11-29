@@ -2084,28 +2084,28 @@ def ob_r_info():
         for c in [a.mysql_56_reserved_keywords]:
             try:
                 i = c.split().index(k)
-                print("%s is r" %k)
+                print(f"{k} is r")
             except ValueError:
                 for d in [a.mysql_56_non_reserved_keywords]:
                     try:
                         i = d.split().index(k)
-                        print("%s is u" %k)
+                        print(f"{k} is u")
                     except ValueError:
-                        print("%s is y" %k)
+                        print(f"{k} is y")
 def ob_non_r_info():
     a = SqlKeywords()
     for k in a.ob_non_reserved_keywords.split():
         for c in [a.mysql_56_reserved_keywords]:
             try:
                 i = c.split().index(k)
-                print("%s is r" %k)
+                print(f"{k} is r")
             except ValueError:
                 for d in [a.mysql_56_non_reserved_keywords]:
                     try:
                         i = d.split().index(k)
-                        print("%s is u" %k)
+                        print(f"{k} is u")
                     except ValueError:
-                        print("%s is y" %k)
+                        print(f"{k} is y")
 
 def ob_mysql_r_info():
     a = SqlKeywords()
@@ -2113,14 +2113,14 @@ def ob_mysql_r_info():
         for c in [a.ob_reserved_keywords]:
             try:
                 i = c.split().index(k)
-                print("%s is r" %k)
+                print(f"{k} is r")
             except ValueError:
                 for d in [a.ob_non_reserved_keywords]:
                     try:
                         i = d.split().index(k)
-                        print("%s is u" %k)
+                        print(f"{k} is u")
                     except ValueError:
-                        print("%s is y" %k)
+                        print(f"{k} is y")
 
 def ob_mysql_non_r_info():
     a = SqlKeywords()
@@ -2128,14 +2128,14 @@ def ob_mysql_non_r_info():
         for c in [a.ob_reserved_keywords]:
             try:
                 i = c.split().index(k)
-                print("%s is r" %k)
+                print(f"{k} is r")
             except ValueError:
                 for d in [a.ob_non_reserved_keywords]:
                     try:
                         i = d.split().index(k)
-                        print("%s is u" %k)
+                        print(f"{k} is u")
                     except ValueError:
-                        print("%s is y" %k)
+                        print(f"{k} is y")
 def gen_non_reserved():
     a = SqlKeywords()
     for k in a.ob_non_reserved_keywords.split():
